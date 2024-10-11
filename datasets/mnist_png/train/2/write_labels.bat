@@ -1,1 +1,0 @@
-python write_labels.py
