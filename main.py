@@ -574,13 +574,13 @@ class Network:
         ## USED DATASET NEEDS TO BE FIGURED OUT HERE
         if use_kfolds:
             
-            n_training_samples = crossvalidation_section_size
+            n_training_samples = crossvalidation_training_section_size
             batches_per_step = math.ceil(n_training_samples / batch_size)
             full_batches_per_step = math.floor(n_training_samples / batch_size)
             n_last_batch_samples = n_training_samples - (full_batches_per_step * batch_size)
             last_full_batch_sample = full_batches_per_step * batch_size
 
-            for sample in range(1, crossvalidation_section_size + 1):
+            for sample in range(1, crossvalidation_training_section_size + 1):
                 models_average_loss = 0
 
                 for current_model in range(crossvalidation_folds):
@@ -645,7 +645,7 @@ class Network:
 
                 average_cost += models_average_loss
 
-                if ((sample % (batch_size)) == 0) or (sample == crossvalidation_section_size):
+                if ((sample % (batch_size)) == 0) or (sample == crossvalidation_training_section_size):
                     if len(self.total_batches) == 0:
                         self.total_batches.append(1)
                     else:
@@ -2688,7 +2688,7 @@ if not loaded_model:
     # model.add_layer(1, 1, 1)
     # model.add_layer(2, 1, 2)
     # model.set_activation_function(1, linear)
-    model.add_layer(1, 50, 1)
+    model.add_layer(1, 5, 1)
     model.set_activation_function(1, relu)
     model.add_layer(2, 4, 2)
     model.set_activation_function(2, sigmoid)
@@ -2762,9 +2762,9 @@ model.print_weights()
 lr = 1
 # batch_size = 32
 batch_size = 4239
-steps = 230
+steps = 5
 # steps = 300
-batches_per_step = int(11293 / batch_size)
+# batches_per_step = int(11293 / batch_size)
 
 
 plot_update_every_n_batches = 1
@@ -3196,13 +3196,14 @@ if use_kfolds:
     # K-fold cross-validation test sample size for given K
     # Assuming the number of folds can be divided into the training samples (i.e. (training_samples.shape[1] / crossvalidation_folds) >= 1)
     # For now, if the number of training samples is not exactly divisible by the number of folds, the spare sample will be ignored
-    crossvalidation_section_size = math.floor(training_samples.shape[1] / crossvalidation_folds)
+    crossvalidation_test_section_size = math.floor(training_samples.shape[1] / crossvalidation_folds)
 
-    if crossvalidation_section_size < 1:
+    if crossvalidation_test_section_size < 1:
         print(f"Error: Cannot calculate k-folds cross-validation as the number of training samples ({training_samples}) cannot be divided into the number of folds ({crossvalidation_folds}).")
         exit(-1)
 
-    crossvalidation_section_size = round(crossvalidation_section_size)
+    crossvalidation_test_section_size = round(crossvalidation_test_section_size)
+    crossvalidation_training_section_size = training_samples.shape[1] - crossvalidation_test_section_size
     crossvalidation_training_samples = []
     crossvalidation_training_dependent_values = []
     crossvalidation_test_samples = []
@@ -3245,8 +3246,9 @@ if use_kfolds:
 
         # If at the first fold
         if fold == 0:
-            test_section = (0, crossvalidation_section_size)
-            train_section_r = (test_section[1], training_samples.shape[1] - 1)
+            test_section = (0, crossvalidation_test_section_size)
+            # train_section_r = (test_section[1], training_samples.shape[1] - 1)
+            train_section_r = (crossvalidation_test_section_size, training_samples.shape[1])
 
             right_training_samples = training_samples[:, train_section_r[0] : train_section_r[1]]
             right_dependent_values = training_dependent_values[train_section_r[0]:train_section_r[1], :]
@@ -3256,8 +3258,10 @@ if use_kfolds:
 
         # If at the last fold
         elif fold == crossvalidation_folds - 1:
-            test_section = ((fold * crossvalidation_section_size), training_samples.shape[1] - 1)
-            train_section_l = (0, test_section[0])
+            # test_section = ((fold * crossvalidation_test_section_size), training_samples.shape[1] - 1)
+            test_section = (crossvalidation_training_section_size, training_samples.shape[1])
+            # train_section_l = (0, test_section[0])
+            train_section_l = (0, crossvalidation_training_section_size)
 
             left_training_samples = training_samples[:, train_section_l[0] : train_section_l[1]]
             left_dependent_values = training_dependent_values[train_section_l[0]:train_section_l[1], :]
@@ -3267,9 +3271,12 @@ if use_kfolds:
 
         # If at folds in between
         else:
-            test_section = (fold * crossvalidation_section_size, ((fold * crossvalidation_section_size) + (crossvalidation_section_size - 1)))
-            train_section_l = (0, test_section[0])
-            train_section_r = (test_section[1], training_samples.shape[1] - 1)
+            # test_section = (fold * crossvalidation_test_section_size, ((fold * crossvalidation_test_section_size) + (crossvalidation_test_section_size - 1)))
+            test_section = (fold * crossvalidation_test_section_size, ((fold * crossvalidation_test_section_size) + crossvalidation_test_section_size))
+            # train_section_l = (0, test_section[0])
+            train_section_l = (0, fold * crossvalidation_test_section_size)
+            # train_section_r = (test_section[1], training_samples.shape[1] - 1)
+            train_section_r = ((fold * crossvalidation_test_section_size) + crossvalidation_test_section_size, training_samples.shape[1])
 
             left_training_samples = training_samples[:, train_section_l[0] : train_section_l[1]]
             right_training_samples = training_samples[:, train_section_r[0] : train_section_r[1]]          
@@ -3279,7 +3286,7 @@ if use_kfolds:
 
             fold_training_samples = np.concatenate((left_training_samples, right_training_samples), axis=1)   
             fold_dependent_values = np.concatenate((left_dependent_values, right_dependent_values), axis=0)
-            
+
         fold_training_samples = np.asmatrix(fold_training_samples) 
         fold_dependent_values = np.asmatrix(fold_dependent_values)
             
@@ -3461,6 +3468,15 @@ elif not use_kfolds:
 
 print("Processed dataset into numpy matrices to use within the network.")
 
+# Clips batch size to the number of training samples if the given number was bigger than the number of training samples
+if not use_kfolds:
+    if batch_size > training_samples.shape[1]:
+        batch_size = training_samples.shape[1]
+else:
+    if batch_size > crossvalidation_training_section_size:
+        batch_size = crossvalidation_training_section_size
+
+
 input_layer = model.layers_in_order[0]
 output_layer = model.layers_in_order[-1]
 
@@ -3577,7 +3593,6 @@ if draw_graph:
     figure.show()
 
 print(f"Steps: {steps} | Training parameters - Learning rate: {lr} | Gradient descent batch size: {batch_size}")
-
 if use_kfolds:
     nn.train(batch_size=batch_size, steps=steps, lr=lr, training_samples=training_samples, dependent_values=training_dependent_values)
 else:
@@ -3642,7 +3657,7 @@ elif use_kfolds:
         macro_metrics = nn.models_macro_metrics[k_model][-1]
         class_metrics = nn.models_class_metrics[k_model][-1]
         k_folds_avg_cost += model_metrics["total_cost"] / crossvalidation_folds
-        print(f"Fold {k_model + 1} model metrics\n--------------------------------")
+        print(f"Fold {k_model + 1} (test set) model metrics\n--------------------------------")
         print_model_metrics(model, model_metrics, micro_metrics, macro_metrics, class_metrics)
         print("--------------------------------")
 
