@@ -744,7 +744,13 @@ class Dataset:
         percentage_of_previous_range = (prev_value - prev_min) / prev_value_range
         new_value_range = new_max - new_min
 
-        return new_min + (new_value_range * percentage_of_previous_range)
+        result = new_min + (new_value_range * percentage_of_previous_range)
+        if result < new_min:
+            result = new_min
+        elif result > new_max:
+            result = new_max
+
+        return result
 
     # Puts feature in [-1, 1] range (does not mean and variance normalize)
     def normalize(self, entry):

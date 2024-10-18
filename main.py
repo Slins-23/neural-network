@@ -1772,8 +1772,8 @@ def measure_model_on_dataset(model, samples, samples_dependent_values, features_
     # Fill out zeroed confusion matrices for each class for multilabel and multiclass classification models
     if model.is_classification():
         for category in range(len(class_list)):
-            confusion_matrix = np.zeros((2, 2), dtype=np.float64)
-            confusion_matrix = np.matrix(confusion_matrix, dtype=np.float64)
+            confusion_matrix = np.zeros((2, 2), dtype=np.uint64)
+            confusion_matrix = np.matrix(confusion_matrix, dtype=np.uint64)
             confusion_matrices.append(confusion_matrix)
 
     # Aggregate results from test set into variables (true positives, true negatives, false positives, false negatives)
@@ -2106,7 +2106,8 @@ def load_model(file):
     model.loss_function = loss
     model.layers = layers
 
-    if is_image_model:
+    model.is_image_model = json_parsed["is_image_model"]
+    if model.is_image_model:
         model.image_dim = json_parsed["image_dim"]
 
     model.setup_done(is_loaded_model=True)
@@ -2138,14 +2139,14 @@ def load_model(file):
 
     model.normalized = json_parsed["normalized"]
 
-    return model
+    return [model, False]
 
 def save_model(model, file):
 
     if not is_image_model:
-        model_data_obj = {"feature_list": model.feature_list, "feature_types": model.feature_types, "class_list": model.class_list, "feature_min_maxes": model.feature_min_maxes, "sample_features_mean": model.sample_features_mean, "sample_dependent_variables_mean": model.sample_dependent_variables_mean, "sample_features_variance": model.sample_features_variance, "sample_features_std": model.sample_features_std, "normalized": model.normalized, "loss": None, "layers": {}, "weights": {}}
+        model_data_obj = {"normalized": model.normalized, "is_image_model": model.is_image_model, "layers": {}, "loss": None, "class_list": model.class_list, "feature_list": model.feature_list, "feature_types": model.feature_types, "feature_min_maxes": model.feature_min_maxes, "sample_features_mean": model.sample_features_mean, "sample_dependent_variables_mean": model.sample_dependent_variables_mean, "sample_features_variance": model.sample_features_variance, "sample_features_std": model.sample_features_std,  "weights": {}}
     else:
-        model_data_obj = {"feature_list": model.feature_list, "feature_types": model.feature_types, "class_list": model.class_list, "feature_min_maxes": model.feature_min_maxes, "sample_features_mean": model.sample_features_mean, "sample_dependent_variables_mean": model.sample_dependent_variables_mean, "sample_features_variance": model.sample_features_variance, "sample_features_std": model.sample_features_std, "normalized": model.normalized, "image_dim": model.image_dim, "loss": None, "layers": {}, "weights": {}}
+        model_data_obj = {"normalized": model.normalized, "is_image_model": model.is_image_model, "image_dim": model.image_dim, "layers": {}, "loss": None, "class_list": model.class_list, "feature_list": model.feature_list, "feature_types": model.feature_types, "feature_min_maxes": model.feature_min_maxes, "sample_features_mean": model.sample_features_mean, "sample_dependent_variables_mean": model.sample_dependent_variables_mean, "sample_features_variance": model.sample_features_variance, "sample_features_std": model.sample_features_std, "weights": {}}
 
     for layer in model.layers_in_order:
         if layer.num > 0:
@@ -2198,7 +2199,7 @@ def save_model(model, file):
 
     print(f"Model saved to file '{file}.json'.")
 
-def predict_prompt(predicting_after_training=True):
+def predict_prompt(model, predicting_after_training=True):
     input_matrix = np.zeros((1 + model.layers_in_order[0].dim, 1), dtype=np.float64)
     input_matrix = np.matrix(input_matrix)
     input_matrix[0, 0] = 1
@@ -2207,7 +2208,7 @@ def predict_prompt(predicting_after_training=True):
     while predicting:
         invalid_value = False
 
-        if is_image_model:
+        if model.is_image_model:
             while True:
                 image = input("Name an image to predict (within the 'images/predict' folder, also include the file extension): ")
                 if os.path.isfile(IMAGES_FOLDER + "predict/" + image):
@@ -2221,9 +2222,9 @@ def predict_prompt(predicting_after_training=True):
             for feature_num, feature_name in enumerate(model.feature_list):
                 feature_type = model.feature_types[feature_num]
 
-                if not is_image_model:
+                if not model.is_image_model:
                     feature_value = input(f"{feature_name} ({feature_type}): ")
-                elif is_image_model:
+                elif model.is_image_model:
                     feature_value = input_matrix[1 + feature_num, 0]
 
                 if feature_type == "str":
@@ -2243,11 +2244,15 @@ def predict_prompt(predicting_after_training=True):
 
                         if model.normalized:
 
-                            if not is_image_model:
-                                feature_value -= model.sample_features_mean[feature_num]
+                            feature_value = Dataset.normalize_helper(feature_value, model.feature_min_maxes[feature_num][0], model.feature_min_maxes[feature_num][1], -1, 1)
+
+                            # if not model.is_image_model:
+                            feature_value -= model.sample_features_mean[feature_num]
+
+                            if model.sample_features_std[feature_num] > 0.0001:
                                 feature_value /= model.sample_features_std[feature_num]
 
-                            feature_value = Dataset.normalize_helper(feature_value, model.feature_min_maxes[feature_num][0], model.feature_min_maxes[feature_num][1], -1, 1)
+                            
                             # print(f"Normalized input: {feature_value}")
                             
                     except Exception as e:
@@ -2263,9 +2268,9 @@ def predict_prompt(predicting_after_training=True):
             for feature_num, feature_name in enumerate(model.feature_list):
                 feature_type = model.feature_types[feature_num]
 
-                if not is_image_model:
+                if not model.is_image_model:
                     feature_value = input(f"{feature_name} ({feature_type}): ")
-                elif is_image_model:
+                elif model.is_image_model:
                     feature_value = input_matrix[1 + feature_num, 0]
 
                 if feature_type == "str":
@@ -2285,11 +2290,14 @@ def predict_prompt(predicting_after_training=True):
 
                         if model.normalized:
 
-                            if not is_image_model:
-                                feature_value -= model.sample_features_mean[feature_num]
+                            feature_value = Dataset.normalize_helper(feature_value, model.feature_min_maxes[feature_num][0], model.feature_min_maxes[feature_num][1], -1, 1)
+
+                            # if not model.is_image_model:
+                            feature_value -= model.sample_features_mean[feature_num]
+
+                            if model.sample_features_std[feature_num] > 0.00001:
                                 feature_value /= model.sample_features_std[feature_num]
 
-                            feature_value = Dataset.normalize_helper(feature_value, model.feature_min_maxes[feature_num][0], model.feature_min_maxes[feature_num][1], -1, 1)
 
                         
                     except:
@@ -2322,8 +2330,8 @@ def predict_prompt(predicting_after_training=True):
                 print(f"Predicted class: {model.class_list[np.argmax(prediction_matrix)]}")
                 print(f"Predict value: {prediction_matrix[np.argmax(prediction_matrix), 0]}")
 
-            if is_image_model:
-                plot_image_from_sample(input_matrix[1:, :])
+            if model.is_image_model:
+                plot_image_from_sample(model, input_matrix[1:, :])
 
         while True:
             result = input("Predict more? (y/n) ")
@@ -2374,48 +2382,58 @@ def predict_prompt(predicting_after_training=True):
 
 # Only normalizes if model.normalized == True
 def mean_n_variance_normalize(model, samples, update_min_maxes=True, ignore_bias=True):
-    if not is_image_model:
-        for entry in range(samples.shape[1]):
-            for feature_idx, feature in enumerate(model.feature_list):
+    if model.is_image_model and update_min_maxes:
+        for feature in range(len(model.feature_list)):
+            model.feature_min_maxes[feature][0] = 0
+            model.feature_min_maxes[feature][1] = 255
+
+        return
+
+    # if not model.is_image_model:
+    for entry in range(samples.shape[1]):
+        for feature_idx, feature in enumerate(model.feature_list):
+            if ignore_bias:
+                entry_old_value = samples[1 + feature_idx, entry]
+            else:
+                entry_old_value = samples[feature_idx, entry]
+
+            if not update_min_maxes and model.normalized:
                 if ignore_bias:
-                    entry_old_value = samples[1 + feature_idx, entry]
+                    samples[1 + feature_idx, entry] -= model.sample_features_mean[feature_idx]
+
+                    # No need to divide if it's already 0, also ignores if std (denominator) is 0
+                    if samples[1 + feature_idx, entry] != 0 and model.sample_features_std[feature_idx] > 0.00001:
+                        samples[1 + feature_idx, entry] /= model.sample_features_std[feature_idx]
                 else:
-                    entry_old_value = samples[feature_idx, entry]
+                    samples[feature_idx, entry] -= model.sample_features_mean[feature_idx]
 
-                if model.normalized:
-                    if ignore_bias:
-                        samples[1 + feature_idx, entry] -= model.sample_features_mean[feature_idx]
+                    # No need to divide if it's already 0, also ignores if std (denominator) is 0 (is the case only if all samples are 0)
+                    if samples[feature_idx, entry] != 0 and model.sample_features_std[feature_idx] > 0.00001:
+                        samples[feature_idx, entry] /= model.sample_features_std[feature_idx]
 
-                        # No need to divide if it's already 0, also ignores if std (denominator) is 0
-                        if samples[1 + feature_idx, entry] != 0 and model.sample_features_std[feature_idx] != 0:
-                            samples[1 + feature_idx, entry] /= model.sample_features_std[feature_idx]
-                    else:
-                        samples[feature_idx, entry] -= model.sample_features_mean[feature_idx]
+                if model.feature_types[feature_idx] == "str":
+                    for key in model.nan_values:
+                        if model.nan_values[key] == entry_old_value:
+                            if ignore_bias:
+                                model.nan_values[key] = samples[1 + feature_idx, entry]
+                            else:
+                                model.nan_values[key] = samples[feature_idx, entry]
 
-                        # No need to divide if it's already 0, also ignores if std (denominator) is 0 (is the case only if all samples are 0)
-                        if samples[feature_idx, entry] != 0 and model.sample_features_std[feature_idx] != 0:
-                            samples[feature_idx, entry] /= model.sample_features_std[feature_idx]
+            if ignore_bias:
+                entry_new_value = samples[1 + feature_idx, entry]
+            else:
+                entry_new_value = samples[feature_idx, entry]
 
-                    if model.feature_types[feature_idx] == "str":
-                        for key in model.nan_values:
-                            if model.nan_values[key] == entry_old_value:
-                                if ignore_bias:
-                                    model.nan_values[key] = samples[1 + feature_idx, entry]
-                                else:
-                                    model.nan_values[key] = samples[feature_idx, entry]
-
-                if ignore_bias:
-                    entry_new_value = samples[1 + feature_idx, entry]
-                else:
-                    entry_new_value = samples[feature_idx, entry]
-
-                if update_min_maxes:
-                    model.feature_min_maxes[feature_idx][0] = min(entry_new_value, model.feature_min_maxes[feature_idx][0])
-                    model.feature_min_maxes[feature_idx][1] = max(entry_new_value, model.feature_min_maxes[feature_idx][1])
+            if update_min_maxes:
+                model.feature_min_maxes[feature_idx][0] = min(entry_new_value, model.feature_min_maxes[feature_idx][0])
+                model.feature_min_maxes[feature_idx][1] = max(entry_new_value, model.feature_min_maxes[feature_idx][1])
+    
+    '''
     else:
         for feature_idx in range(model.layers_in_order[0].dim):
             model.feature_min_maxes[feature_idx][0] = 0
             model.feature_min_maxes[feature_idx][1] = 255
+    '''
 
 # Puts feature in [-1, 1] range (does not mean and variance normalize)
 def new_normalize(model, samples, ignore_bias=True):
@@ -2463,7 +2481,7 @@ def get_image_pixel_matrix(folder, image):
     pixels = list(img.getdata())
     parsed_pixels = []
     for pixel in pixels:
-        if use_black_white_images:
+        if uses_grayscale_images:
             if type(pixel) == list or type(pixel) == tuple:
                 # parsed_pixels.append(pixel[0] / 255.0)
                 # Not dividing by 255.0 in order to let user choose whether to normalize data or not at runtime
@@ -2531,11 +2549,7 @@ def load_image_dataset(folder):
             pixel_count = image_pixels_matrix.shape[0]
 
             if not loaded_model:
-                if use_black_white_images:
-                    image_dim = int(round(math.sqrt(pixel_count)))
-                    image_dim = (image_dim, image_dim)
-                else:
-                    image_dim = Image.open(folder + image_filename).size
+                image_dim = Image.open(folder + image_filename).size
 
                 feature_list = [f"p{i}" for i in range(pixel_count)]
                 feature_types = ["float"] * pixel_count
@@ -2592,28 +2606,49 @@ def load_image_dataset(folder):
     else:
         return (samples, labels, None, None, None)
     
-def plot_image_from_sample(sample):
-    if use_black_white_images:
-        img_dim = int(math.s)
-        parsed_sample = np.zeros((img_dim, img_dim))
+def plot_image_from_sample(model, sample):
+    tmp_sample = sample
+
+    # Manually re-normalizing sample from range [-1, 1] to range [0, 1], as matplotlib simply ignores values below 0.
+    if model.normalized:
+        # tmp_sample = (sample + 1) / 2
+        for feature in range(sample.shape[0]):
+
+            if model.sample_features_std[feature] > 0.00001:
+                tmp_sample[feature, 0] = (sample[feature, 0] * model.sample_features_std[feature]) + model.sample_features_mean[feature]
+            else:
+                tmp_sample[feature, 0] = sample[feature, 0] + model.sample_features_mean[feature]
+
+            tmp_sample[feature, 0] = Dataset.normalize_helper(tmp_sample[feature, 0], -1, 1, 0, 1)
+
+    # Or simply divide by 255 if non-normalized (is in the default range of [0, 255])
+    else:
+        tmp_sample = sample / np.max(model.feature_min_maxes)
+
+    
+
+    if uses_grayscale_images:
+        parsed_sample = np.zeros((model.image_dim[0], model.image_dim[1]))
         parsed_sample = np.matrix(parsed_sample)
         
-        for row in range(img_dim):
-            for col in range(img_dim):
-                parsed_sample[row, col] = sample[(row * img_dim) + col, 0]
+        for row in range(model.image_dim[0]):
+            for col in range(model.image_dim[1]):
+                parsed_sample[row, col] = tmp_sample[(row * model.image_dim[1]) + col, 0]
 
         plt.imshow(parsed_sample, cmap="grey")
+
+    
     
 
     else:
         width, height = model.image_dim
         pixels = []
-        for i in range(sample.shape[0]):
+        for i in range(tmp_sample.shape[0]):
             if model.normalized:
                 # pixels.append(Dataset.normalize_helper(sample[i, 0], -1, 1, 0, 255))
-                pixels.append(sample[i, 0])
+                pixels.append(tmp_sample[i, 0])
             else:
-                pixels.append(sample[i, 0])
+                pixels.append(tmp_sample[i, 0])
 
         pixel_array = np.array(pixels).reshape((height, width, 3))
         plt.imshow(pixel_array)
@@ -2684,17 +2719,17 @@ if not loaded_model:
     model.set_activation_function(2, linear)
     model.set_loss_function(loss_mse)
     '''
-    model.add_layer(0, 4, 0)
-    # model.add_layer(1, 1, 1)
+    # model.add_layer(0, 106*80*3, 0)
+    model.add_layer(0, 784, 0)
+    model.add_layer(1, 50, 1)
     # model.add_layer(2, 1, 2)
-    # model.set_activation_function(1, linear)
-    model.add_layer(1, 5, 1)
     model.set_activation_function(1, relu)
-    model.add_layer(2, 4, 2)
-    model.set_activation_function(2, sigmoid)
+    # model.set_activation_function(1, linear)
+    model.add_layer(2, 10, 2)
+    model.set_activation_function(2, softmax)
     # model.set_activation_function(2, linear)
     # model.set_loss_function(loss_mse)
-    model.set_loss_function(loss_binary_crossentropy)
+    model.set_loss_function(loss_categorical_crossentropy)
 
     model.setup_done(is_loaded_model=False)
     model.print_architecture()
@@ -2759,9 +2794,9 @@ Predicted value (price_brl): 554333.8209315466
 
 print(f"Initial weights")
 model.print_weights()
-lr = 1
+lr = 0.08
 # batch_size = 32
-batch_size = 4239
+batch_size = 32
 steps = 5
 # steps = 300
 # batches_per_step = int(11293 / batch_size)
@@ -2784,25 +2819,29 @@ plot_update_every_n_batches = 1
 #dataset_file = "dataset.csv"
 
 IMAGES_FOLDER = "images/"
-is_image_model = False
-while True:
-    result = input("Will the model be used for images? (y/n) ")
-    if result == 'y':
-        is_image_model = True
-        break
-    elif result == 'n':
-        is_image_model = False
-        break
+
+if not loaded_model:
+    is_image_model = False
+    while True:
+        result = input("Will the model be used for images? (y/n) ")
+        if result == 'y':
+            is_image_model = True
+            break
+        elif result == 'n':
+            is_image_model = False
+            break
+
+    model.is_image_model = is_image_model
     
-use_black_white_images = False
-if is_image_model:
+uses_grayscale_images = False
+if model.is_image_model:
     while True:
         result = input("Does the model use black and white images? (y/n) ")
         if result == 'y':
-            use_black_white_images = True
+            uses_grayscale_images = True
             break
         elif result == 'n':
-            use_black_white_images = False
+            uses_grayscale_images = False
             break
 
 while True:
@@ -2810,7 +2849,7 @@ while True:
     if result == "0":
         break
     elif result == "1":
-        predict_prompt(False)
+        predict_prompt(model, False)
         exit(0)
 
 draw_graph = True
@@ -2870,7 +2909,7 @@ else:
     use_test_set = False
 
 use_separate_sample_folders = False
-if is_image_model and (use_test_set or use_holdout):
+if model.is_image_model and (use_test_set or use_holdout):
     while True:
         result = input("Use image samples (i.e. hold-out, test) from those within the 'train' folder as percentages, or from their respective folders? (0/1) ")
         if result == '0':
@@ -2955,6 +2994,17 @@ if use_kfolds:
         else:
             print("Integer must be positive and greater than 1.")
 
+shuffle_dataset = True
+while True:
+    result = input("Shuffle dataset? (y/n) ")
+    if result == 'n':
+        shuffle_dataset = False
+        break
+    elif result == 'y':
+        break
+    else:
+        continue
+
 if not use_separate_sample_folders:
     print(f"Train set: {training_set_percentage * 100}%", end="")
     if use_holdout:
@@ -2962,7 +3012,7 @@ if not use_separate_sample_folders:
     if use_test_set:
         print(f" | Test set: {test_set_percentage * 100}%", end="")
 elif use_separate_sample_folders:
-    if is_image_model:
+    if model.is_image_model:
         total_images = 0
         total_training_samples = len(os.listdir(IMAGES_FOLDER + "train/")) - 1
         total_images += total_training_samples
@@ -2983,7 +3033,7 @@ elif use_separate_sample_folders:
         if use_test_set:
             print(f" | Test set: {(total_test_samples / total_images) * 100}%", end="")
         
-    elif not is_image_model:
+    elif not model.is_image_model:
         print("Error: Cannot currently separate datasets by folder unless they are images.")
         exit(-1)
 
@@ -2999,7 +3049,7 @@ print()
 if use_kfolds:
     print(f"Folds set for cross-validation: {crossvalidation_folds}")
 
-if not is_image_model:
+if not model.is_image_model:
     dataset = Dataset()
 
     if not loaded_model:
@@ -3051,17 +3101,24 @@ if not use_separate_sample_folders:
         test_samples = np.matrix(test_samples)
         test_dependent_values = np.matrix(test_dependent_values)
 
-if not is_image_model:
+
+
+if not model.is_image_model:
     ## Shuffle/randomize dataset entries
     ## Include this in a data preprocessing function? i.e. dataset.randomize()?
     ## Prompt user where to shuffle
-    for idx in range(len(dataset.filtered_entries)):
-        random_pos = random.randint(0, len(dataset.filtered_entries) - 1)
-        current_entry = dataset.filtered_entries[idx]
-        entry_to_swap = dataset.filtered_entries[random_pos]
-        dataset.filtered_entries[random_pos] = current_entry
-        dataset.filtered_entries[idx] = entry_to_swap
-        ## Calculate test/validate/train set variances for correlation coefficient if regression model
+
+
+    if shuffle_dataset:
+        for idx in range(len(dataset.filtered_entries)):
+            random_pos = random.randint(0, len(dataset.filtered_entries) - 1)
+            current_entry = dataset.filtered_entries[idx]
+            entry_to_swap = dataset.filtered_entries[random_pos]
+            dataset.filtered_entries[random_pos] = current_entry
+            dataset.filtered_entries[idx] = entry_to_swap
+            ## Calculate test/validate/train set variances for correlation coefficient if regression model
+
+        print("Shuffled dataset.")
 
     for sample_num, entry in enumerate(dataset.filtered_entries):
         # Fill training set (within dataset array range [0, total_training_samples))
@@ -3101,9 +3158,10 @@ if not is_image_model:
 
             for class_num, class_name in enumerate(entry.dependent_values):
                 test_dependent_values[sample_num - total_training_samples, class_num] = entry.dependent_values[class_name]
-elif is_image_model:
-    
-    # randomize_dataset(images, labels)
+elif model.is_image_model:
+    if shuffle_dataset:
+        randomize_dataset(images, labels)
+        print("Shuffled dataset.")
 
     if not use_separate_sample_folders:
         training_samples = images[:, :total_training_samples]
@@ -3125,11 +3183,15 @@ elif is_image_model:
 
         if use_holdout:
             crossvalidation_samples, crossvalidation_dependent_values, _, _, _ = load_image_dataset(IMAGES_FOLDER + "holdout/")
-            randomize_dataset(crossvalidation_samples, crossvalidation_dependent_values)
+
+            if shuffle_dataset:
+                randomize_dataset(crossvalidation_samples, crossvalidation_dependent_values)
 
         if use_test_set:
             test_samples, test_dependent_values, _, _, _ = load_image_dataset(IMAGES_FOLDER + "test/")
-            randomize_dataset(test_samples, test_dependent_values)
+
+            if shuffle_dataset:
+                randomize_dataset(test_samples, test_dependent_values)
 
 
 print("Loaded dataset.")
@@ -3298,6 +3360,23 @@ if use_kfolds:
         crossvalidation_test_samples.append(fold_test_samples)
         crossvalidation_test_dependent_values.append(fold_test_dependent_values)
 
+        k_model = crossvalidation_models[fold]
+        k_model.feature_min_maxes = []
+        for feature_type in k_model.feature_types:
+            if feature_type == "str":
+                k_model.feature_min_maxes.append([0, -math.inf])
+            elif feature_type == "float":
+                k_model.feature_min_maxes.append([math.inf, -math.inf])
+
+        # Updates features' min/max values
+        mean_n_variance_normalize(k_model, crossvalidation_training_samples[fold], update_min_maxes=True, ignore_bias=True)
+
+        # Normalizes features to range [-1, 1]
+        if k_model.normalized:
+            new_normalize(k_model, crossvalidation_training_samples[fold])
+            new_normalize(k_model, crossvalidation_test_samples[fold])
+
+        # Calculates means, variances, and standard deviations
         without_one_fold_training_samples = fold_training_samples[1:, :]
         result = Dataset.get_dataset_stats(without_one_fold_training_samples, fold_dependent_values, model.feature_list, model.class_list)
         crossvalidation_training_features_mean.append(result["features_mean"])
@@ -3307,14 +3386,36 @@ if use_kfolds:
         crossvalidation_training_dependent_variables_variance.append(result["dependent_variables_variance"])
         crossvalidation_training_dependent_variables_std.append(result["dependent_variables_std"])
 
-        crossvalidation_models[fold].sample_features_mean = crossvalidation_training_features_mean[fold]
-        crossvalidation_models[fold].sample_features_variance = crossvalidation_training_features_variance[fold]
-        crossvalidation_models[fold].sample_features_std = crossvalidation_training_features_std[fold]
-        crossvalidation_models[fold].sample_dependent_variables_mean = crossvalidation_training_dependent_variables_mean[fold]
-        crossvalidation_models[fold].sample_dependent_variables_variance = crossvalidation_training_dependent_variables_variance[fold]
-        crossvalidation_models[fold].sample_dependent_variables_std = crossvalidation_training_dependent_variables_std[fold]
+        k_model.sample_features_mean = crossvalidation_training_features_mean[fold]
+        k_model.sample_features_variance = crossvalidation_training_features_variance[fold]
+        k_model.sample_features_std = crossvalidation_training_features_std[fold]
+        k_model.sample_dependent_variables_mean = crossvalidation_training_dependent_variables_mean[fold]
+        k_model.sample_dependent_variables_variance = crossvalidation_training_dependent_variables_variance[fold]
+        k_model.sample_dependent_variables_std = crossvalidation_training_dependent_variables_std[fold]
+
+        # Mean normalizes and standardizes features
+        if k_model.normalized:
+            mean_n_variance_normalize(k_model, crossvalidation_training_samples[fold], update_min_maxes=False, ignore_bias=True)
+            mean_n_variance_normalize(k_model, crossvalidation_test_samples[fold], update_min_maxes=False, ignore_bias=True)
 
 elif not use_kfolds:
+    model.feature_min_maxes = []
+    for feature_type in model.feature_types:
+        if feature_type == "str":
+            model.feature_min_maxes.append([0, -math.inf])
+        elif feature_type == "float":
+            model.feature_min_maxes.append([math.inf, -math.inf])
+
+    mean_n_variance_normalize(model, training_samples, update_min_maxes=True, ignore_bias=True)
+
+    if model.normalized:
+        new_normalize(model, training_samples)
+
+        if use_holdout:
+            new_normalize(model, crossvalidation_samples)
+        if use_test_set:
+            new_normalize(model, test_samples)
+
     without_one_training_samples = training_samples[1:, :]
     result = Dataset.get_dataset_stats(without_one_training_samples, training_dependent_values, model.feature_list, model.class_list)
 
@@ -3332,46 +3433,15 @@ elif not use_kfolds:
     model.sample_dependent_variables_variance = training_dependent_variables_variance
     model.sample_dependent_variables_std = training_dependent_variables_std
 
-
-
-
-    # Mean normalization (sets mean of feature axes to 0) & variance normalization
-        
-if use_kfolds:
-    for fold, k_model in enumerate(crossvalidation_models):
-        k_model.feature_min_maxes = []
-        for feature_type in k_model.feature_types:
-            if feature_type == "str":
-                k_model.feature_min_maxes.append([0, -math.inf])
-            elif feature_type == "float":
-                k_model.feature_min_maxes.append([math.inf, -math.inf])
-
-        mean_n_variance_normalize(k_model, crossvalidation_training_samples[fold], update_min_maxes=True, ignore_bias=True)
-
-        if k_model.normalized:
-            mean_n_variance_normalize(k_model, crossvalidation_test_samples[fold], update_min_maxes=False, ignore_bias=True)
-            new_normalize(k_model, crossvalidation_training_samples[fold])
-            new_normalize(k_model, crossvalidation_test_samples[fold])
-else:
-    model.feature_min_maxes = []
-    for feature_type in model.feature_types:
-        if feature_type == "str":
-            model.feature_min_maxes.append([0, -math.inf])
-        elif feature_type == "float":
-            model.feature_min_maxes.append([math.inf, -math.inf])
-
-    mean_n_variance_normalize(model, training_samples, update_min_maxes=True, ignore_bias=True)
-
     if model.normalized:
-        new_normalize(model, training_samples)
+        mean_n_variance_normalize(model, training_samples, update_min_maxes=False, ignore_bias=True)
 
-    if use_holdout and model.normalized:
-        mean_n_variance_normalize(model, crossvalidation_samples, update_min_maxes=False, ignore_bias=True)
-        new_normalize(model, crossvalidation_samples)
+        if use_holdout:
+            mean_n_variance_normalize(model, crossvalidation_samples, update_min_maxes=False, ignore_bias=True)
+        if use_test_set:
+            mean_n_variance_normalize(model, test_samples, update_min_maxes=False, ignore_bias=True)
 
-    if use_test_set and model.normalized:
-        mean_n_variance_normalize(model, test_samples, update_min_maxes=False, ignore_bias=True)
-        new_normalize(model, test_samples)
+
 
     '''
     for i in range(training_samples.shape[1]):
@@ -3384,6 +3454,7 @@ if model.normalized:
     without_one_training_samples = training_samples[1:, :]
     result = Dataset.get_dataset_stats(without_one_training_samples, training_dependent_values, model.feature_list, model.class_list)
 
+    # These are after normalizing, and kept separate from the statistics before normalization (i.e. model.sample_features_mean), in order to evaluate metrics after normalizing and also normalize values/revert normalization
     training_features_mean = result["features_mean"]
     training_features_variance = result["features_variance"]
     training_features_std = result["features_std"]
@@ -3391,13 +3462,18 @@ if model.normalized:
     training_dependent_variables_variance = result["dependent_variables_variance"]
     training_dependent_variables_std = result["dependent_variables_std"]
 
-    print(f"Mean (after normalizing): {training_features_mean}")
-    print(f"Std (after normalizing): {training_features_std}")
+    # print(f"Mean (after normalizing): {training_features_mean}")
+    # print(f"Std (after normalizing): {training_features_std}")
+
+    # print(f"Mean (b4 normalizing): {model.sample_features_mean}")
+    # print(f"Std (b4 normalizing): {model.sample_features_std}")
 
     # exit(-1)
 
 if use_kfolds:
     for fold in range(crossvalidation_folds):
+
+        # These are after normalizing, and kept separate from the statistics before normalization (i.e. model.sample_features_mean), in order to evaluate metrics after normalizing and also normalize values/revert normalization
         if crossvalidation_models[fold].normalized:
             without_one_fold_training_samples = crossvalidation_training_samples[fold][1:, :]
             result = Dataset.get_dataset_stats(without_one_fold_training_samples, crossvalidation_training_dependent_values[fold], model.feature_list, model.class_list)
@@ -3475,6 +3551,12 @@ if not use_kfolds:
 else:
     if batch_size > crossvalidation_training_section_size:
         batch_size = crossvalidation_training_section_size
+
+# print(training_dependent_values[0, :])
+# plot_image_from_sample(model, training_samples[1:, 0])
+# print(training_dependent_values[1, :])
+# plot_image_from_sample(model, training_samples[1:, 1])
+# exit(-1)
 
 
 input_layer = model.layers_in_order[0]
@@ -3755,7 +3837,7 @@ while True:
     result = input("Predict? (You can save the model after) (y/n) ")
 
     if result == 'y':
-        predict_prompt(True)
+        predict_prompt(model, True)
         break
     elif result == 'n':
         break
