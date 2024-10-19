@@ -2139,7 +2139,7 @@ def load_model(file):
 
     model.normalized = json_parsed["normalized"]
 
-    return [model, False]
+    return model
 
 def save_model(model, file):
 
@@ -2331,7 +2331,7 @@ def predict_prompt(model, predicting_after_training=True):
                 print(f"Predict value: {prediction_matrix[np.argmax(prediction_matrix), 0]}")
 
             if model.is_image_model:
-                plot_image_from_sample(model, input_matrix[1:, :])
+                plot_image_from_sample(model,input_matrix[1:, :])
 
         while True:
             result = input("Predict more? (y/n) ")
@@ -2720,13 +2720,17 @@ if not loaded_model:
     model.set_loss_function(loss_mse)
     '''
     # model.add_layer(0, 106*80*3, 0)
-    model.add_layer(0, 784, 0)
-    model.add_layer(1, 50, 1)
+    model.add_layer(0, 106*80*3, 0)
+    # model.add_layer(1, 50, 1)
     # model.add_layer(2, 1, 2)
+    # model.set_activation_function(1, relu)
+    model.add_layer(1, 50, 1)
     model.set_activation_function(1, relu)
-    # model.set_activation_function(1, linear)
-    model.add_layer(2, 10, 2)
-    model.set_activation_function(2, softmax)
+
+    model.add_layer(2, 3, 2)
+    model.set_activation_function(2, sigmoid)
+
+    # model.set_activation_function(2, softmax)
     # model.set_activation_function(2, linear)
     # model.set_loss_function(loss_mse)
     model.set_loss_function(loss_categorical_crossentropy)
@@ -2794,15 +2798,19 @@ Predicted value (price_brl): 554333.8209315466
 
 print(f"Initial weights")
 model.print_weights()
+# lr = 0.00001
 lr = 0.08
 # batch_size = 32
+# batch_size = 1
 batch_size = 32
-steps = 5
+# steps = 5
 # steps = 300
+steps = 5
 # batches_per_step = int(11293 / batch_size)
 
 
-plot_update_every_n_batches = 1
+plot_update_every_n_batches = 12
+# plot_update_every_n_batches = 8469
 # plot_update_every_n_batches = 500
 # Not normalizing
 # lr = 0.000000000005
