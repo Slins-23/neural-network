@@ -2517,7 +2517,8 @@ def print_bw_image_pixels(pixel_matrix):
 # It is assumed that all images are square and the number of labels exactly match the number of images in the given folder
 # The labels go into the file `labels.txt` and must be on the same folder as all of the images within the file, and vice-versa for the images
 # Each sample label is separated by a new line, and it is formatted as `filename,label`, where `label` is a number.
-def load_image_dataset(folder):
+# `unique_dataset` ignores the setup for re-initializing the feature list, class list, optionally giving names to each class among other things if False. Otherwise it stores and returns it.
+def load_image_dataset(folder, unique_dataset=True):
     # Line below gets files in alphanumerical order based on filename
     # files_in_folder = list(sorted(os.listdir(folder), key=len)) 
 
@@ -2548,7 +2549,7 @@ def load_image_dataset(folder):
         if image_filename == images_in_folder[0] :
             pixel_count = image_pixels_matrix.shape[0]
 
-            if not loaded_model:
+            if not loaded_model and unique_dataset:
                 image_dim = Image.open(folder + image_filename).size
 
                 feature_list = [f"p{i}" for i in range(pixel_count)]
@@ -2601,7 +2602,7 @@ def load_image_dataset(folder):
         else:
             labels[image_idx, category] = 1
 
-    if not loaded_model:
+    if not loaded_model and unique_dataset:
         return (samples, labels, feature_list, feature_types, class_list, image_dim)
     else:
         return (samples, labels, None, None, None)
@@ -2727,8 +2728,14 @@ if not loaded_model:
     model.add_layer(1, 50, 1)
     model.set_activation_function(1, relu)
 
-    model.add_layer(2, 3, 2)
-    model.set_activation_function(2, sigmoid)
+    model.add_layer(2, 125, 1)
+    model.set_activation_function(2, relu)
+
+    model.add_layer(3, 50, 1)
+    model.set_activation_function(3, relu)
+
+    model.add_layer(4, 3, 2)
+    model.set_activation_function(2, softmax)
 
     # model.set_activation_function(2, softmax)
     # model.set_activation_function(2, linear)
@@ -2799,7 +2806,7 @@ Predicted value (price_brl): 554333.8209315466
 print(f"Initial weights")
 model.print_weights()
 # lr = 0.00001
-lr = 0.08
+lr = 0.0005
 # batch_size = 32
 # batch_size = 1
 batch_size = 32
@@ -2809,7 +2816,7 @@ steps = 5
 # batches_per_step = int(11293 / batch_size)
 
 
-plot_update_every_n_batches = 12
+plot_update_every_n_batches = 0
 # plot_update_every_n_batches = 8469
 # plot_update_every_n_batches = 500
 # Not normalizing
@@ -3067,7 +3074,7 @@ if not model.is_image_model:
 
     total_samples = len(dataset.filtered_entries)
 else:
-    images, labels, feature_list, feature_types, class_list, image_dim = load_image_dataset(IMAGES_FOLDER + "train/")
+    images, labels, feature_list, feature_types, class_list, image_dim = load_image_dataset(IMAGES_FOLDER + "train/", unique_dataset=True)
 
     if not loaded_model:
         model.feature_list = feature_list
@@ -3190,13 +3197,13 @@ elif model.is_image_model:
         training_dependent_values = labels
 
         if use_holdout:
-            crossvalidation_samples, crossvalidation_dependent_values, _, _, _ = load_image_dataset(IMAGES_FOLDER + "holdout/")
+            crossvalidation_samples, crossvalidation_dependent_values, _, _, _ = load_image_dataset(IMAGES_FOLDER + "holdout/", unique_dataset=False)
 
             if shuffle_dataset:
                 randomize_dataset(crossvalidation_samples, crossvalidation_dependent_values)
 
         if use_test_set:
-            test_samples, test_dependent_values, _, _, _ = load_image_dataset(IMAGES_FOLDER + "test/")
+            test_samples, test_dependent_values, _, _, _ = load_image_dataset(IMAGES_FOLDER + "test/", unique_dataset=False)
 
             if shuffle_dataset:
                 randomize_dataset(test_samples, test_dependent_values)
@@ -3856,7 +3863,7 @@ while True:
         filename = input("Save as file (exclude extension, is saved as .json): ").strip()
         # Save weights to text file here
         save_model(model, filename)
-        print(f"Model saved to {filename}.json")
+        # print(f"Model saved to {filename}.json")
         break
     elif result == 'n':
         break
