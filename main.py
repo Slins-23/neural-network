@@ -524,6 +524,7 @@ class Network:
         for output_neuron in range(predicted_output.shape[0]):
             
             predicted_value = predicted_output[output_neuron, 0]
+
             observed_value = observed_output[0, output_neuron]
             sample_loss += model.loss_function(predicted_value, observed_value)
 
@@ -2721,25 +2722,18 @@ if not loaded_model:
     model.set_loss_function(loss_mse)
     '''
     # model.add_layer(0, 106*80*3, 0)
-    model.add_layer(0, 106*80*3, 0)
+    model.add_layer(0, 28*28, 0)
     # model.add_layer(1, 50, 1)
     # model.add_layer(2, 1, 2)
     # model.set_activation_function(1, relu)
     model.add_layer(1, 50, 1)
     model.set_activation_function(1, relu)
 
-    model.add_layer(2, 125, 1)
-    model.set_activation_function(2, relu)
-
-    model.add_layer(3, 50, 1)
-    model.set_activation_function(3, relu)
-
-    model.add_layer(4, 3, 2)
-    model.set_activation_function(2, softmax)
-
     # model.set_activation_function(2, softmax)
     # model.set_activation_function(2, linear)
     # model.set_loss_function(loss_mse)
+    model.add_layer(2, 10, 2)
+    model.set_activation_function(2, softmax)
     model.set_loss_function(loss_categorical_crossentropy)
 
     model.setup_done(is_loaded_model=False)
@@ -2805,8 +2799,7 @@ Predicted value (price_brl): 554333.8209315466
 
 print(f"Initial weights")
 model.print_weights()
-# lr = 0.00001
-lr = 0.0005
+lr = 0.03
 # batch_size = 32
 # batch_size = 1
 batch_size = 32
@@ -3700,12 +3693,12 @@ else:
 
 
 
-print("33")
+# print("33")
 
 # figure.tight_layout()
 # figure.show()
-print("99")
-print("2 Plot showed, joined training")
+# print("99")
+# print("2 Plot showed, joined training")
 
 # training_thread.join()
 
