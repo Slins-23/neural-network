@@ -1,41 +1,6 @@
 # Neural Network
 A Python implementation from scratch of a neural network (using NumPy for matrix operations), made primarily for learning purposes. 
 
-## Features
-
-- Linear regression
-- Logistic regression
-- Multi-label classification
-- Multi-class classification
-- Accepts `.csv` delimited by `,` and images (those go in the `images/train` folder alongside a `labels.txt` file, which, in each line, contains the name an image within the folder, followed by a comma, and which class it pertains to i.e. `image01.png,0`)
-- (Optional) Save and load models (.json files with model metadata such as each layer's weights, model architecture, information on the dataset it was trained, etc...)
-- (Optional) Normalization (normalizes to range [-1, 1], mean normalizes, then standardizes)
-- (Optional) L1 & L2 regularization
-- Arbitrary batch size
-- Arbitrary number of layers and nodes
-- Xavier (linear, sigmoid, softmax) and HE (relu) weight initialization (optionally normally or uniformly distributed)
-- Loading and filtering dataset (.csv) by column names or column numbers, choose dependent or independent variable, and also (optionally) filter by comparison (i.e. keep only the values for the given column which are >, <, ==, or != to a certain value)
-- (Optional) Shuffle dataset
-- (Optional) Measuring/evaluating dataset for performance metrics on an arbitrary model (the function responsible for this is `measure_model_on_dataset` `@main.py`)
-- (Optional) Hold-out, k-folds cross-validation, and test sets
-- (Optional) Plotting cost graphs and test/hold-out set performance metrics (i.e. r^2 for regression models, or accuracy, precision, recall, and f1-score for classification models)
-- (Optional) Arbitrary names for classes for image multi-class classification models
-- Activation functions
-  - Linear (`linear`)
-  - Rectified Linear Unit (`relu`)
-  - Sigmoid (`sigmoid`)
-  - Softmax (`softmax`)
-- Loss functions
-  - Mean squared error (`loss_mse`)
-  - Binary cross-entropy (`loss_binary_crossentropy`)
-  - Categorical cross-entropy (`loss_categorical_crossentropy`)
-
-## How to use
-
-The parameters are `lr`, `batch_size`....
-
-### Loading/labeling images as dataset
-
 ## Examples
 
 * Note: The following example videos are sped-up and low quality due to GitHub's file size limit og 10MB.
@@ -79,7 +44,40 @@ https://github.com/user-attachments/assets/479b44f2-3759-4462-a155-1116f7a43019
 
 https://github.com/user-attachments/assets/d2557369-eee7-42d3-ab3f-01ee4c0c41d4
 
+## Features
 
+- Linear regression
+- Logistic regression
+- Multi-label classification
+- Multi-class classification
+- Accepts `.csv` delimited by `,` and images (those go in the `images/train` folder alongside a `labels.txt` file, which, in each line, contains the name an image within the folder, followed by a comma, and which class it pertains to i.e. `image01.png,0`)
+- (Optional) Save and load models (.json files with model metadata such as each layer's weights, model architecture, information on the dataset it was trained, etc...)
+- (Optional) Normalization (normalizes to range [-1, 1], mean normalizes, then standardizes)
+- (Optional) L1 & L2 regularization
+- Arbitrary batch size
+- Arbitrary number of layers and nodes
+- Xavier (linear, sigmoid, softmax) and HE (relu) weight initialization (optionally normally or uniformly distributed)
+- Loading and filtering dataset (.csv) by column names or column numbers, choose dependent or independent variable, and also (optionally) filter by comparison (i.e. keep only the values for the given column which are >, <, ==, or != to a certain value)
+- (Optional) Shuffle dataset
+- (Optional) Measuring/evaluating dataset for performance metrics on an arbitrary model (the function responsible for this is `measure_model_on_dataset` `@main.py`)
+- (Optional) Hold-out, k-folds cross-validation, and test sets
+- (Optional) Plotting cost graphs and test/hold-out set performance metrics (i.e. r^2 for regression models, or accuracy, precision, recall, and f1-score for classification models)
+- (Optional) Arbitrary names for classes for image multi-class classification models
+- Activation functions
+  - Linear (`linear`)
+  - Rectified Linear Unit (`relu`)
+  - Sigmoid (`sigmoid`)
+  - Softmax (`softmax`)
+- Loss functions
+  - Mean squared error (`loss_mse`)
+  - Binary cross-entropy (`loss_binary_crossentropy`)
+  - Categorical cross-entropy (`loss_categorical_crossentropy`)
+
+## How to use
+
+The parameters are `lr`, `batch_size`....
+
+### Loading/labeling images as dataset
 
 ### Labeling and setting up an image dataset
 
