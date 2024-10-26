@@ -40,13 +40,42 @@ The parameters are `lr`, `batch_size`....
 
 * Note: The following example videos are sped-up and low quality due to GitHub's file size limit og 10MB.
 
-### Linear regression
+### Linear regression (houses.csv)
 
-### Logistic regression
 
-### Multi-label classification
+https://github.com/user-attachments/assets/18eecd0d-ce30-4e88-93ee-4f7696d807b0
 
-### Multi-class classification
+
+
+### Logistic regression (framingham.csv)
+
+
+
+https://github.com/user-attachments/assets/2dc4374f-e046-46a3-8d25-04c4f4c05db3
+
+
+
+### Multi-label classification (framingham.csv)
+
+
+
+https://github.com/user-attachments/assets/998b5c6a-f42a-443a-9c3a-518d5bb7c0be
+
+
+
+### Multi-class classification (mnist_png.rar)
+
+
+
+https://github.com/user-attachments/assets/479b44f2-3759-4462-a155-1116f7a43019
+
+### Multi-class classification (RGB) (cars.rar)
+
+
+
+https://github.com/user-attachments/assets/d2557369-eee7-42d3-ab3f-01ee4c0c41d4
+
+
 
 ### Labeling and setting up an image dataset
 
