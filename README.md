@@ -36,6 +36,20 @@ https://github.com/user-attachments/assets/479b44f2-3759-4462-a155-1116f7a43019
 
 https://github.com/user-attachments/assets/d2557369-eee7-42d3-ab3f-01ee4c0c41d4
 
+### Labeling images
+
+
+
+https://github.com/user-attachments/assets/c983ead9-d4a5-4548-bea0-0289c64a371f
+
+
+
+### Resizing images
+
+
+https://github.com/user-attachments/assets/5b47e22f-8db8-405c-8dc3-d6ec64956d0d
+
+
 ## Features
 
 - Linear regression
