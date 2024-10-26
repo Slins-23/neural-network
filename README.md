@@ -21,16 +21,8 @@ https://github.com/user-attachments/assets/2dc4374f-e046-46a3-8d25-04c4f4c05db3
 
 
 ### Multi-label classification (3-folds cross-validation) (framingham.csv)
-* Note: On the video I mistakenly saved the model as `framingham_multiclass_classification` instead of `framingham_multilabel_classification`. The model file in the repo is the latter.
-
-
-
 
 https://github.com/user-attachments/assets/9af34dbf-9ef9-448b-8d8d-f3e5a97f0fad
-
-
-
-
 
 ### Multi-class classification (mnist_png.rar)
 
