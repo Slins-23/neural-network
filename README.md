@@ -3,7 +3,7 @@ A Python implementation from scratch of a neural network (using NumPy for matrix
 
 ## Examples
 
-* Note: The following example videos are sped-up and low quality due to GitHub's file size limit og 10MB.
+* Note: The following example videos are sped-up and low quality due to GitHub's file size limit of 10MB.
 
 ### Linear regression (houses.csv)
 
