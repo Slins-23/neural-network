@@ -2482,18 +2482,23 @@ def get_image_pixel_matrix(folder, image):
     pixels = list(img.getdata())
     parsed_pixels = []
     for pixel in pixels:
-        if uses_grayscale_images:
-            if type(pixel) == list or type(pixel) == tuple:
-                # parsed_pixels.append(pixel[0] / 255.0)
-                # Not dividing by 255.0 in order to let user choose whether to normalize data or not at runtime
-                parsed_pixels.append(pixel[0])
-            elif type(pixel) == int or type(pixel) == float:
-                # parsed_pixels.append(pixel / 255.0)
-                # Not dividing by 255.0 in order to let user choose whether to normalize data or not at runtime
-                parsed_pixels.append(pixel)
+        if type(pixel) == int or type(pixel) == float:
+            parsed_pixels.append(pixel)
         else:
             for color_channel in pixel:
                 parsed_pixels.append(color_channel)
+        # if uses_grayscale_images:
+        #     if type(pixel) == list or type(pixel) == tuple:
+        #         # parsed_pixels.append(pixel[0] / 255.0)
+        #         # Not dividing by 255.0 in order to let user choose whether to normalize data or not at runtime
+        #         parsed_pixels.append(pixel[0])
+        #     elif type(pixel) == int or type(pixel) == float:
+        #         # parsed_pixels.append(pixel / 255.0)
+        #         # Not dividing by 255.0 in order to let user choose whether to normalize data or not at runtime
+        #         parsed_pixels.append(pixel)
+        # else:
+        #     for color_channel in pixel:
+        #         parsed_pixels.append(color_channel)
 
     parsed_pixels = np.matrix(parsed_pixels).transpose()
     return parsed_pixels
@@ -2557,7 +2562,7 @@ def load_image_dataset(folder, unique_dataset=True):
                 feature_types = ["float"] * pixel_count
 
                 if model.layers_in_order[-1].dim == 1:
-                    class_list = ["label"]
+                    class_list = ["0"]
                 else:
                     print(f"This image model has {model.layers_in_order[-1].dim} classes. The default behavior for displaying/storing classes' metadata is as their respective integer identifiers (i.e. [0, 1, 2]).")
                     print("Note: This is only relevant for readability/interepration (i.e. reading model configuration files and infering). It doesn't change internal behavior.")
@@ -2722,19 +2727,17 @@ if not loaded_model:
     model.set_loss_function(loss_mse)
     '''
     # model.add_layer(0, 106*80*3, 0)
-    model.add_layer(0, 28*28, 0)
+    model.add_layer(0, 1, 0)
     # model.add_layer(1, 50, 1)
     # model.add_layer(2, 1, 2)
     # model.set_activation_function(1, relu)
-    model.add_layer(1, 50, 1)
-    model.set_activation_function(1, relu)
+    model.add_layer(1, 1, 2)
+    model.set_activation_function(1, linear)
 
     # model.set_activation_function(2, softmax)
     # model.set_activation_function(2, linear)
     # model.set_loss_function(loss_mse)
-    model.add_layer(2, 10, 2)
-    model.set_activation_function(2, softmax)
-    model.set_loss_function(loss_categorical_crossentropy)
+    model.set_loss_function(loss_mse)
 
     model.setup_done(is_loaded_model=False)
     model.print_architecture()
@@ -2799,17 +2802,17 @@ Predicted value (price_brl): 554333.8209315466
 
 print(f"Initial weights")
 model.print_weights()
-lr = 0.03
+lr = 0.00001
 # batch_size = 32
 # batch_size = 1
-batch_size = 32
+batch_size = 11293
 # steps = 5
 # steps = 300
-steps = 5
+steps = 1000
 # batches_per_step = int(11293 / batch_size)
 
 
-plot_update_every_n_batches = 0
+plot_update_every_n_batches = 1
 # plot_update_every_n_batches = 8469
 # plot_update_every_n_batches = 500
 # Not normalizing
