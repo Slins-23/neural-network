@@ -2492,8 +2492,9 @@ def get_image_pixel_matrix(folder, image, model=None):
                 if model.image_bit_depth == 1 or model.image_bit_depth == 8:
                     parsed_pixels.append(pixel[0])
                 else:
-                    for color_channel in pixel:
-                        parsed_pixels.append(color_channel)
+                    total_channels = int(model.image_bit_depth / 8)
+                    for color_channel in range(total_channels):
+                        parsed_pixels.append(pixel[color_channel])
             else:
                 for color_channel in pixel:
                     parsed_pixels.append(color_channel)
