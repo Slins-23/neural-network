@@ -1134,6 +1134,8 @@ class Model:
     sample_features_std = []
     sample_dependent_variables_mean = []
 
+    image_bit_depth = None
+
     def add_layer(self, num: int, dim: int, type: int) -> None:
         if self.ready_to_use:
             print("Cannot add a new layer: you cannot modify the model's architecture once you have called `model.setup_done()`.")
@@ -1211,7 +1213,7 @@ class Model:
                 elif activation_function == sigmoid:
                     activation_function_name = "sigmoid"
                 elif activation_function == softmax:
-                    activation_function_name = "sofmtax"
+                    activation_function_name = "softmax"
                 else:
                     print(f"Error: Could not set activation function for layer {layer_num} - invalid activation function given.")
                     exit(-1)
@@ -1224,7 +1226,7 @@ class Model:
         # Should be run after the setup
     
     # Running this function on layer number 1 regularizes the weights/connections between layer 0 and layer 1
-    def set_regularization(self, target_layer_num, l1_rate, l2_rate):
+    def set_regularization(self, target_layer_num, l1_rate=0, l2_rate=0):
         if target_layer_num == 0:
             print(f"Error: Could not set regularization for layer 0, the input layer cannot be regularized, only the layers that have incoming connections.")
             exit(-1)
@@ -1784,7 +1786,7 @@ def measure_model_on_dataset(model, samples, samples_dependent_values, features_
     average_cost = 0
 
     if model.is_regression():
-        correlation_coefficients_per_feature = [[[0, [0, 0]] for _ in range(len(class_list))] for _ in range(len(feature_list))] # Each element is a list containing the correlation coefficient calculated with respect to the current feature, where the correlation coefficient is currently averaged over the number of classes)
+        # correlation_coefficients_per_feature = [[[0, [0, 0]] for _ in range(len(class_list))] for _ in range(len(feature_list))] # Each element is a list containing the correlation coefficient calculated with respect to the current feature, where the correlation coefficient is currently averaged over the number of classes)
         r_squareds_per_feature = [[[0, 0] for _ in range(len(class_list))] for _ in range(len(feature_list))]
 
     top_rsquared = 0
@@ -1826,9 +1828,9 @@ def measure_model_on_dataset(model, samples, samples_dependent_values, features_
                     # bottom[1] = math.pow(dependent_value - dependent_variable_mean, 2)
                     bottom[1] = math.pow(predicted_value - model.sample_dependent_variables_mean[dependent_variable], 2)
                 
-                    correlation_coefficients_per_feature[feature][dependent_variable][0] += top
-                    correlation_coefficients_per_feature[feature][dependent_variable][1][0] += bottom[0]
-                    correlation_coefficients_per_feature[feature][dependent_variable][1][1] += bottom[1]
+                    # correlation_coefficients_per_feature[feature][dependent_variable][0] += top
+                    # correlation_coefficients_per_feature[feature][dependent_variable][1][0] += bottom[0]
+                    # correlation_coefficients_per_feature[feature][dependent_variable][1][1] += bottom[1]
 
                     top_rsquared = math.pow(dependent_value - predicted_value, 2)
                     bottom_rsquared = math.pow(dependent_value - dependent_variable_mean, 2)
@@ -1943,21 +1945,21 @@ def measure_model_on_dataset(model, samples, samples_dependent_values, features_
             # print(correlation_coefficients_per_feature)
 
             for feature in range(len(feature_list)):
-                correlation_coefficients_per_dependent_variable = correlation_coefficients_per_feature[feature]
+                # correlation_coefficients_per_dependent_variable = correlation_coefficients_per_feature[feature]
                 r_squareds_per_dependent_variable = r_squareds_per_feature[feature]
 
-                feature_correlation_coefficient_average = 0
+                # feature_correlation_coefficient_average = 0
                 feature_r_squared_average = 0
 
                 for dependent_variable in range(len(class_list)):
-                    correlation_coefficient = correlation_coefficients_per_dependent_variable[dependent_variable]
+                    # correlation_coefficient = correlation_coefficients_per_dependent_variable[dependent_variable]
                     r_squared = r_squareds_per_dependent_variable[dependent_variable]
 
-                    top = correlation_coefficient[0]
-                    bottom = correlation_coefficient[1]
+                    # top = correlation_coefficient[0]
+                    # bottom = correlation_coefficient[1]
 
-                    correlation_coefficient = top / math.sqrt(bottom[0] * bottom[1])
-                    feature_correlation_coefficient_average += correlation_coefficient
+                    # correlation_coefficient = top / math.sqrt(bottom[0] * bottom[1])
+                    # feature_correlation_coefficient_average += correlation_coefficient
 
                     top_rsquared = r_squared[0]
                     bottom_rsquared = r_squared[1]
@@ -1965,13 +1967,13 @@ def measure_model_on_dataset(model, samples, samples_dependent_values, features_
                     r_squared = 1 - (top_rsquared / bottom_rsquared)
                     feature_r_squared_average += r_squared
 
-                feature_correlation_coefficient_average /= len(class_list)
+                # feature_correlation_coefficient_average /= len(class_list)
                 feature_r_squared_average /= len(class_list)
 
-                correlation_coefficients_averages.append(feature_correlation_coefficient_average)
+                # correlation_coefficients_averages.append(feature_correlation_coefficient_average)
                 r_squareds_averages.append(feature_r_squared_average)
             
-            correlation_coefficient_average = sum(correlation_coefficients_averages) / len(feature_list) # Correlation coefficient from averaging over the features, after averaging over the dependent variables for each feature
+            # correlation_coefficient_average = sum(correlation_coefficients_averages) / len(feature_list) # Correlation coefficient from averaging over the features, after averaging over the dependent variables for each feature
             r_squared_average = sum(r_squareds_averages) / len(feature_list)
             micro_metrics["r_squared"] = r_squared_average
             # micro_metrics["r"] = correlation_coefficient_average
@@ -2031,7 +2033,7 @@ def print_model_metrics(model, model_metrics=None, micro_metrics=None, macro_met
 def load_model(file):
     content = ""
 
-    with open(file + ".json") as f:
+    with open(MODELS_FOLDER + file + ".json") as f:
         content = f.read()
 
     json_parsed = json.loads(content)
@@ -2110,6 +2112,7 @@ def load_model(file):
     model.is_image_model = json_parsed["is_image_model"]
     if model.is_image_model:
         model.image_dim = json_parsed["image_dim"]
+        model.image_bit_depth = json_parsed["image_bit_depth"]
 
     model.setup_done(is_loaded_model=True)
 
@@ -2147,7 +2150,7 @@ def save_model(model, file):
     if not is_image_model:
         model_data_obj = {"normalized": model.normalized, "is_image_model": model.is_image_model, "layers": {}, "loss": None, "class_list": model.class_list, "feature_list": model.feature_list, "feature_types": model.feature_types, "feature_min_maxes": model.feature_min_maxes, "sample_features_mean": model.sample_features_mean, "sample_dependent_variables_mean": model.sample_dependent_variables_mean, "sample_features_variance": model.sample_features_variance, "sample_features_std": model.sample_features_std,  "weights": {}}
     else:
-        model_data_obj = {"normalized": model.normalized, "is_image_model": model.is_image_model, "image_dim": model.image_dim, "layers": {}, "loss": None, "class_list": model.class_list, "feature_list": model.feature_list, "feature_types": model.feature_types, "feature_min_maxes": model.feature_min_maxes, "sample_features_mean": model.sample_features_mean, "sample_dependent_variables_mean": model.sample_dependent_variables_mean, "sample_features_variance": model.sample_features_variance, "sample_features_std": model.sample_features_std, "weights": {}}
+        model_data_obj = {"normalized": model.normalized, "is_image_model": model.is_image_model, "image_dim": model.image_dim, "image_bit_depth": model.image_bit_depth, "layers": {}, "loss": None, "class_list": model.class_list, "feature_list": model.feature_list, "feature_types": model.feature_types, "feature_min_maxes": model.feature_min_maxes, "sample_features_mean": model.sample_features_mean, "sample_dependent_variables_mean": model.sample_dependent_variables_mean, "sample_features_variance": model.sample_features_variance, "sample_features_std": model.sample_features_std, "weights": {}}
 
     for layer in model.layers_in_order:
         if layer.num > 0:
@@ -2195,7 +2198,7 @@ def save_model(model, file):
     for layer_connection, layer_weight in enumerate(model_weights):
         model_data_obj["weights"][str(layer_connection)] = layer_weight.tolist()
 
-    with open(f"{file}.json", "w") as f:
+    with open(MODELS_FOLDER + file + ".json", "w") as f:
         json.dump(model_data_obj, f)
 
     print(f"Model saved to file '{file}.json'.")
@@ -2213,7 +2216,7 @@ def predict_prompt(model, predicting_after_training=True):
             while True:
                 image = input("Name an image to predict (within the 'images/predict' folder, also include the file extension): ")
                 if os.path.isfile(IMAGES_FOLDER + "predict/" + image):
-                    input_matrix[1:, 0] = get_image_pixel_matrix(IMAGES_FOLDER + "predict/", image)
+                    input_matrix[1:, 0] = get_image_pixel_matrix(IMAGES_FOLDER + "predict/", image, model=model)
                     break
                 else:
                     print(f"Could not find image @ `{IMAGES_FOLDER + 'predict/' + image}`")
@@ -2477,7 +2480,7 @@ def color_is_similar(color_a, color_b):
         return True
 
 # Returns the pixel array for images (if black and white is True, return 0 or 1 for each pixel, otherwise return RGB array)
-def get_image_pixel_matrix(folder, image):
+def get_image_pixel_matrix(folder, image, model=None):
     img = Image.open(folder + image)
     pixels = list(img.getdata())
     parsed_pixels = []
@@ -2485,8 +2488,16 @@ def get_image_pixel_matrix(folder, image):
         if type(pixel) == int or type(pixel) == float:
             parsed_pixels.append(pixel)
         else:
-            for color_channel in pixel:
-                parsed_pixels.append(color_channel)
+            if model != None:
+                if model.image_bit_depth == 1 or model.image_bit_depth == 8:
+                    parsed_pixels.append(pixel[0])
+                else:
+                    for color_channel in pixel:
+                        parsed_pixels.append(color_channel)
+            else:
+                for color_channel in pixel:
+                    parsed_pixels.append(color_channel)
+
         # if uses_grayscale_images:
         #     if type(pixel) == list or type(pixel) == tuple:
         #         # parsed_pixels.append(pixel[0] / 255.0)
@@ -2524,7 +2535,7 @@ def print_bw_image_pixels(pixel_matrix):
 # The labels go into the file `labels.txt` and must be on the same folder as all of the images within the file, and vice-versa for the images
 # Each sample label is separated by a new line, and it is formatted as `filename,label`, where `label` is a number.
 # `unique_dataset` ignores the setup for re-initializing the feature list, class list, optionally giving names to each class among other things if False. Otherwise it stores and returns it.
-def load_image_dataset(folder, unique_dataset=True):
+def load_image_dataset(folder, model=None, unique_dataset=True):
     # Line below gets files in alphanumerical order based on filename
     # files_in_folder = list(sorted(os.listdir(folder), key=len)) 
 
@@ -2550,13 +2561,41 @@ def load_image_dataset(folder, unique_dataset=True):
     labels = np.matrix(np.zeros((total_images, model.layers_in_order[-1].dim)))
 
     for image_idx, image_filename in enumerate(images_in_folder):
-        image_pixels_matrix = get_image_pixel_matrix(folder, image_filename)
+        image_pixels_matrix = get_image_pixel_matrix(folder, image_filename, model)
 
         if image_filename == images_in_folder[0] :
             pixel_count = image_pixels_matrix.shape[0]
 
             if not loaded_model and unique_dataset:
-                image_dim = Image.open(folder + image_filename).size
+                tmp_image = Image.open(folder + image_filename)
+                image_dim = tmp_image.size
+                match tmp_image.mode:
+                    case '1':
+                        image_bit_depth = 1
+                    case 'L':
+                        image_bit_depth = 8
+                    case 'P':
+                        image_bit_depth = 8
+                    case 'RGB':
+                        image_bit_depth = 24
+                    case 'RGBA':
+                        image_bit_depth = 32
+                    case 'CMYK':
+                        image_bit_depth = 32
+                    case 'YCbCr':
+                        image_bit_depth = 24
+                    case 'LAB':
+                        image_bit_depth = 24
+                    case 'HSV':
+                        image_bit_depth = 24
+                    case 'I':
+                        image_bit_depth = 32
+                    case 'F':
+                        image_bit_depth = 32
+                    case _:
+                        print(tmp_image.mode)
+                        print("Error: Could not load image dataset, image depth is not 8, 24, or 32.")
+                        exit(-1)
 
                 feature_list = [f"p{i}" for i in range(pixel_count)]
                 feature_types = ["float"] * pixel_count
@@ -2609,9 +2648,9 @@ def load_image_dataset(folder, unique_dataset=True):
             labels[image_idx, category] = 1
 
     if not loaded_model and unique_dataset:
-        return (samples, labels, feature_list, feature_types, class_list, image_dim)
+        return (samples, labels, feature_list, feature_types, class_list, image_dim, image_bit_depth)
     else:
-        return (samples, labels, None, None, None)
+        return (samples, labels, None, None, None, None)
     
 def plot_image_from_sample(model, sample):
     tmp_sample = sample
@@ -2634,7 +2673,7 @@ def plot_image_from_sample(model, sample):
 
     
 
-    if uses_grayscale_images:
+    if model.image_bit_depth == 1 or model.image_bit_depth == 8:
         parsed_sample = np.zeros((model.image_dim[0], model.image_dim[1]))
         parsed_sample = np.matrix(parsed_sample)
         
@@ -2657,7 +2696,10 @@ def plot_image_from_sample(model, sample):
             else:
                 pixels.append(tmp_sample[i, 0])
 
-        pixel_array = np.array(pixels).reshape((height, width, 3))
+        if model.image_bit_depth == 24:
+            pixel_array = np.array(pixels).reshape((height, width, 3))
+        elif model.image_bit_depth == 32:
+            pixel_array = np.array(pixels).reshape((height, width, 4))
         plt.imshow(pixel_array)
 
     plt.show()
@@ -2677,6 +2719,7 @@ def randomize_dataset(samples, dependent_values):
         samples[:, idx] = sample_to_swap
         dependent_values[idx, :] = dependent_values_to_swap
 
+MODELS_FOLDER = "models/"
 nn = Network()
 model = Model()
 loaded_model = False
@@ -2685,8 +2728,8 @@ while True:
     if result == 'y':
         while True:
             result = input("Load model from file (exclude extension, will be .json): ").strip()
-            if not os.path.isfile(result + ".json"):
-                print(f"File '{result}.json', file could not be found.")
+            if not os.path.isfile(MODELS_FOLDER + result + ".json"):
+                print(f"File '{result}.json', file could not be found within (relative) folder {MODELS_FOLDER[:-1]}.")
                 continue
 
             loaded_model = True
@@ -2727,17 +2770,18 @@ if not loaded_model:
     model.set_loss_function(loss_mse)
     '''
     # model.add_layer(0, 106*80*3, 0)
-    model.add_layer(0, 1, 0)
+    model.add_layer(0, 106*80*3, 0)
     # model.add_layer(1, 50, 1)
     # model.add_layer(2, 1, 2)
     # model.set_activation_function(1, relu)
-    model.add_layer(1, 1, 2)
-    model.set_activation_function(1, linear)
+    model.add_layer(1, 50, 1)
+    model.set_activation_function(1, relu)
 
-    # model.set_activation_function(2, softmax)
+    model.add_layer(2, 3, 2)
+    model.set_activation_function(2, softmax)
     # model.set_activation_function(2, linear)
     # model.set_loss_function(loss_mse)
-    model.set_loss_function(loss_mse)
+    model.set_loss_function(loss_categorical_crossentropy)
 
     model.setup_done(is_loaded_model=False)
     model.print_architecture()
@@ -2802,15 +2846,14 @@ Predicted value (price_brl): 554333.8209315466
 
 print(f"Initial weights")
 model.print_weights()
-lr = 0.00001
+lr = 0.005
 # batch_size = 32
 # batch_size = 1
-batch_size = 11293
+batch_size = 32
 # steps = 5
 # steps = 300
-steps = 1000
+steps = 5
 # batches_per_step = int(11293 / batch_size)
-
 
 plot_update_every_n_batches = 1
 # plot_update_every_n_batches = 8469
@@ -2833,7 +2876,12 @@ IMAGES_FOLDER = "images/"
 
 if not loaded_model:
     is_image_model = False
+    warned_0 = False
     while True:
+        if not warned_0:
+            print(f"Note: All of the training set images must be within the 'images/train' folder, relative to the folder where this script is ran from.")
+            warned_0 = True
+
         result = input("Will the model be used for images? (y/n) ")
         if result == 'y':
             is_image_model = True
@@ -2844,6 +2892,7 @@ if not loaded_model:
 
     model.is_image_model = is_image_model
     
+'''
 uses_grayscale_images = False
 if model.is_image_model:
     while True:
@@ -2854,6 +2903,7 @@ if model.is_image_model:
         elif result == 'n':
             uses_grayscale_images = False
             break
+'''
 
 while True:
     result = input("Train or predict? (0/1) ")
@@ -3070,13 +3120,14 @@ if not model.is_image_model:
 
     total_samples = len(dataset.filtered_entries)
 else:
-    images, labels, feature_list, feature_types, class_list, image_dim = load_image_dataset(IMAGES_FOLDER + "train/", unique_dataset=True)
+    images, labels, feature_list, feature_types, class_list, image_dim, image_bit_depth = load_image_dataset(IMAGES_FOLDER + "train/", model=model, unique_dataset=True)
 
     if not loaded_model:
         model.feature_list = feature_list
         model.feature_types = feature_types
         model.class_list = class_list
         model.image_dim = image_dim
+        model.image_bit_depth = image_bit_depth
 
     total_samples = images.shape[1]
 
@@ -3193,13 +3244,13 @@ elif model.is_image_model:
         training_dependent_values = labels
 
         if use_holdout:
-            crossvalidation_samples, crossvalidation_dependent_values, _, _, _ = load_image_dataset(IMAGES_FOLDER + "holdout/", unique_dataset=False)
+            crossvalidation_samples, crossvalidation_dependent_values, _, _, _ = load_image_dataset(IMAGES_FOLDER + "holdout/", model=model, unique_dataset=False)
 
             if shuffle_dataset:
                 randomize_dataset(crossvalidation_samples, crossvalidation_dependent_values)
 
         if use_test_set:
-            test_samples, test_dependent_values, _, _, _ = load_image_dataset(IMAGES_FOLDER + "test/", unique_dataset=False)
+            test_samples, test_dependent_values, _, _, _ = load_image_dataset(IMAGES_FOLDER + "test/", model=model, unique_dataset=False)
 
             if shuffle_dataset:
                 randomize_dataset(test_samples, test_dependent_values)

@@ -19,12 +19,6 @@ class Dataset:
     
     nan_values = {}
 
-    reference_features = []
-    reference_values = []
-    reference_types = []
-    min_distance = math.inf
-    max_distance = -math.inf
-
     should_normalize = False
 
     prenorm_feature_min_maxes = []
@@ -45,84 +39,6 @@ class Dataset:
                 break
             else:
                 print("Error: Invalid file path. File was not found.")
-
-
-        # (If given) Keeps track of reference values, types, and features 
-        while True:
-            result = input("Give reference value? (y/n) ")
-            if result == 'y':
-                while True:
-                    print("Must be a number!")
-                    l_given_reference_features = input(f"Which feature(s)/column(s) to use as reference(s)? (comma-separated and no whitespace i.e. 'area_m2,price_brl') Options: {', '.join(self.columns)} ")
-                    l_given_reference_features = l_given_reference_features.split(",")
-
-                    l_reference_features = []
-                    l_reference_types = []
-                    reference_feature_invalid = False
-                    for reference_feature in l_given_reference_features:
-                        if reference_feature in l_reference_features:
-                            print(f"Error: Duplicate feature/column '{reference_feature}'.")
-                            reference_feature_invalid = True
-                            break
-
-                        if reference_feature in self.feature_list:
-                            feature_index = self.feature_list.index(reference_feature)
-                            feature_type = self.feature_types[feature_index]
-
-                            l_reference_features.append(reference_feature)
-                            l_reference_types.append(feature_type)
-                        elif reference_feature in self.class_list:
-                            class_index = self.class_list.index(reference_feature)
-                            class_type = self.class_types[class_index]
-
-                            l_reference_features.append(reference_feature)
-                            l_reference_types.append(class_type)
-                        elif reference_feature in self.columns:
-                            l_reference_features.append(reference_feature)
-                            l_reference_types.append("float") # THIS COULD BE A STRING OR A NUMBER, BUT I SET IT TO FLOAT EITHER WAY BECAUSE STRING SIMILARITY IS NOT IMPLEMENTED
-                        else:
-                            print(f"Error: Feature '{reference_feature}' is not a valid feature. ")
-                            reference_feature_invalid = True
-                            break
-
-                    if reference_feature_invalid:
-                        continue
-
-                    l_reference_values = []
-                    reference_value_invalid = False
-
-                    print("Type in the reference values for each respective feature.")
-                    for reference_feature, reference_type in zip(l_reference_features, l_reference_types):
-                        while True:
-                            reference_value = input(f"{reference_feature} (type: '{reference_type}'): ")
-
-                            if reference_type == 'float':
-                                try:
-                                    reference_value = float(reference_value)
-                                    l_reference_values.append(reference_value)
-                                except Exception as e:
-                                    print(f"Error: Given value '{reference_value}' is not a number.")
-                                    continue
-                            elif reference_type == 'str':
-                                print(f"Error: Value must be a number. Cannot measure string similarity, only euclidean distance.")
-                                l_reference_values.append(reference_value)
-
-                            break
-
-                    if reference_value_invalid:
-                        continue
-
-                    self.reference_features = l_reference_features
-                    self.reference_values = l_reference_values
-                    self.reference_types = l_reference_types
-
-                    break
-            elif result != 'n':
-                print("Error: Invalid input. Must be 'y' or 'n'.")
-                continue
-
-            break
-
 
         # (If chosen) Filters the entries with the given parameters
         filtered_entries = self.entries
@@ -443,15 +359,6 @@ class Dataset:
         print("Finished populating the entries.")
 
     def custom_filter(self, entry, target_features, comparison_targets, comparison_operators):
-        if self.reference_values != []:
-            if entry.distance == None:
-                entry.distance = entry.distance_from_reference()
-
-                if entry.distance > self.max_distance:
-                    self.max_distance = entry.distance
-                elif entry.distance < self.min_distance:
-                    self.min_distance = entry.distance
-
         for feature, target, operator in zip(target_features, comparison_targets, comparison_operators):
             cmp = True
 
@@ -499,20 +406,6 @@ class Dataset:
                             cmp = entry.features[feature] > target
                         else:
                             cmp = entry.column_value_dict[feature] > target
-            elif feature == "distance_builtin":
-                match operator:
-                    case '==':
-                        cmp = entry.distance == target
-                    case '!=':
-                        cmp = entry.distance != target
-                    case '<':
-                        cmp = entry.distance < target
-                    case '<=':
-                        cmp = entry.distance <= target
-                    case '>=':
-                        cmp = entry.distance >= target
-                    case '>':
-                        cmp = entry.distance > target
 
             if not cmp:
                 return False
@@ -528,10 +421,7 @@ class Dataset:
             comparison_targets = []
             comparison_operators = []
             while True:
-                if self.reference_features == []:
-                    l_target_features = input(f"Which features/columns to filter (comma-separated and no whitespace i.e. 'area_m2,price_brl')? Options: {', '.join(self.columns)} ")
-                else:
-                    l_target_features = input(f"Which features/columns to filter (comma-separated and no whitespace i.e. 'area_m2,price_brl')? Options: {', '.join(self.columns)}, distance_builtin ")
+                l_target_features = input(f"Which features/columns to filter (comma-separated and no whitespace i.e. 'area_m2,price_brl')? Options: {', '.join(self.columns)} ")
 
                 l_target_features = l_target_features.split(",")
 
@@ -589,17 +479,6 @@ class Dataset:
                                 print("Error: Invalid target value. Could not convert it to a number.")
                                 target_invalid = True
                                 break
-
-                        l_comparison_targets.append(comparison_target)
-
-                    elif target_feature == "distance_builtin":
-                        comparison_target = input(f"Type in the target value to compare the euclidean distance against the provided reference values. Your input must be a valid number! ")
-                        try:
-                            comparison_target = float(comparison_target)
-                        except:
-                            print("Error: Invalid target value. Could not convert it to a number.")
-                            target_invalid = True
-                            break
 
                         l_comparison_targets.append(comparison_target)
                     else:
@@ -699,26 +578,9 @@ class Dataset:
 
                 break
 
-            if self.reference_features != []:
-                self.min_distance = math.inf
-                self.max_distance = -math.inf
-
             filtered_list = list(filter(lambda entry: self.custom_filter(entry, target_features, comparison_targets, comparison_operators), filtered_list))
 
             print("Samples have been filtered.")
-        else:
-            if self.reference_features != []:
-                self.min_distance = math.inf
-                self.max_distance = -math.inf
-
-                for entry in filtered_list:
-                    if entry.distance == None:
-                        entry.distance = entry.distance_from_reference()
-
-                    if entry.distance > self.max_distance:
-                        self.max_distance = entry.distance
-                    elif entry.distance < self.min_distance:
-                        self.min_distance = entry.distance
 
         return filtered_list
 
@@ -838,10 +700,10 @@ class Dataset:
 
         for sample in range(num_entries):
             for feature_idx, feature in enumerate(feature_list):
-                features_variance[feature_idx] += math.pow((samples[feature_idx, sample] - features_mean[feature_idx]), 2) / num_entries
+                features_variance[feature_idx] += math.pow((samples[feature_idx, sample] - features_mean[feature_idx]), 2) / (num_entries - 1)
 
             for class_idx, class_name in enumerate(class_list):
-                dependent_variables_variance[class_idx] += math.pow((samples_dependent_values[sample, class_idx] - dependent_variables_mean[class_idx]), 2) / num_entries
+                dependent_variables_variance[class_idx] += math.pow((samples_dependent_values[sample, class_idx] - dependent_variables_mean[class_idx]), 2) / (num_entries - 1)
 
 
         '''
@@ -896,35 +758,3 @@ class Entry:
             self.dependent_values[class_name] = class_value
 
         self.column_value_dict = column_value_dict
-
-        self.distance = None
-
-
-    # Euclidean distance
-    def distance_from_reference(self, dataset):
-        if self.reference_values == [] or self.reference_features == []:
-            return None
-        
-        dist = 0
-        for reference_feature, reference_value in zip(self.reference_features, self.reference_values):
-            if reference_feature in dataset.feature_list:
-                current_feature_value = self.features[reference_feature]
-
-            elif reference_feature in dataset.class_list:
-                current_feature_value = self.dependent_values[reference_feature]
-
-            elif reference_feature in self.columns:
-                current_feature_value = self.column_value_dict[reference_feature]
-            else:
-                print(f"Error: Reference feature '{reference_feature}' is not in the dataset.")
-                exit(-1)
-                
-                
-            dist += math.pow(reference_value - current_feature_value, 2)
-
-        dist = math.sqrt(dist)
-
-        return dist
-
-
-
