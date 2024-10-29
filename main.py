@@ -2492,9 +2492,20 @@ def get_image_pixel_matrix(folder, image, model=None):
                 if model.image_bit_depth == 1 or model.image_bit_depth == 8:
                     parsed_pixels.append(pixel[0])
                 else:
-                    total_channels = int(model.image_bit_depth / 8)
-                    for color_channel in range(total_channels):
-                        parsed_pixels.append(pixel[color_channel])
+
+                    ## If predicting an RGBA image on an RGB trained model
+                    ## Ignores the alpha channel
+                    if img.mode == 'RGBA' and model.image_bit_depth == 24:
+                        total_channels = int(model.image_bit_depth / 8)
+                        for color_channel in range(total_channels):
+                            parsed_pixels.append(pixel[color_channel])
+
+                    ## If predicting RGB image on an RGBA trained model
+                    ## Makes alpha channel 255
+                    elif img.mode == 'RGB' and model.image_bit_depth == 32:
+                        for color_channel in pixel:
+                            parsed_pixels.append(color_channel)
+                        parsed_pixels.append(255)
             else:
                 for color_channel in pixel:
                     parsed_pixels.append(color_channel)
