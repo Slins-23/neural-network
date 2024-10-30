@@ -4,7 +4,7 @@ import random
 import numpy as np
 
 class Dataset:
-    dataset_file_path = ""
+    dataset_filename = ""
     entries = []
     columns = []
     column_types = []
@@ -28,12 +28,15 @@ class Dataset:
     K = 0
     N = 0
 
-    def __init__(self):
+    DATASET_FOLDER = ""
+
+    def __init__(self, DATASET_FOLDER=""):
+        self.DATASET_FOLDER = DATASET_FOLDER
 
         # Loads dataset and entries
         while True:
-            self.dataset_file_path = input("Dataset file path (relative or absolute): ")
-            if os.path.isfile(self.dataset_file_path):
+            self.dataset_filename = input("Dataset filename (within the folder f`{DATASET_FOLDER}`): ")
+            if os.path.isfile(DATASET_FOLDER + self.dataset_filename):
                 self.populate_entries()
                 print("Dataset loaded.")
                 break
@@ -160,7 +163,7 @@ class Dataset:
         print("1,50,250000")
         print("2,200,900000\n")
 
-        with open(self.dataset_file_path, "r", encoding="utf-8") as dataset:
+        with open(self.DATASET_FOLDER + self.dataset_filename, "r", encoding="utf-8") as dataset:
             rows = dataset.readlines()
             column_names = rows[0].replace("\n", "").split(",")
             columns = column_names

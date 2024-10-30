@@ -1,153 +1,253 @@
-# Neural Network
-A Python implementation from scratch of a neural network (using NumPy for matrix operations), made primarily for learning purposes. 
+## Index
+- [Summary](#summary)
+- [Examples](#examples)
+    - [Linear regression (`houses.csv`)](#linear-regression-housescsv)
+    - [Logistic regression (`framingham.csv`)](#logistic-regression-framinghamcsv)
+    - [Multi-label classification (3-folds cross-validation) (`framingham.csv`)](#multi-label-classification-3-folds-cross-validation-framinghamcsv)
+    - [Multi-class classification (`mnist_png.rar`)](#multi-class-classification-mnist_pngrar)
+    - [Multi-class classification (RGB) (`cars.rar`)](#multi-class-classification-rgb-carsrar)
+    - [Labeling images](#labeling-images)
+    - [Resizing images](#resizing-images)
+- [How to use](#how-to-use)
+  - [Training a model (from scratch or by retraining an already existing model):](#training-a-model-from-scratch-or-by-retraining-an-already-existing-model)
+  - [Loading a model for prediction only:](#loading-a-model-for-prediction-only)
+  - [Defining a model from scratch](#defining-a-model-from-scratch)
+  - [Activation functions](#activation-functions)
+  - [Loss functions](#loss-functions)
+  - [Model setup](#model-setup)
+  - [Setting up the hyperparameters](#setting-up-the-hyperparameters)
+  - [Dataset loading](#dataset-loading)
+    - [Comma delimited `.csv` dataset](#comma-delimited-csv-dataset)
+    - [Image dataset](#image-dataset)
+      - [Label images](#label-images)
+      - [**(Optional)** Resize all images to the same dimension](#optional-resize-all-images-to-the-same-dimension)
+  - [Running the script](#running-the-script)
+- [How it works](#how-it-works)
+- [Features](#features)
+- [Notes](#notes)
+- [Todo](#todo)
 
-## Examples
+# Summary
+A Python implementation from scratch of a neural network (using NumPy for matrix operations), made primarily for learning purposes.
 
-* Note: The following example videos are sped-up and low quality due to GitHub's file size limit of 10MB. There's also an option that is now unnecessary, called "Use grayscale images".
+Tested with Python 3.10.6
 
-### Linear regression (houses.csv)
+Required python modules (working version)
+> NumPy (2.0.1)<br>
+> Pillow  (10.4.0)<br>
+> Matplotlib (3.9.1)<br>
+
+You can execute `pip install -r requirements.txt` in order to install these modules.
+
+# Examples
+
+  > ***The following example videos are sped-up and low quality due to GitHub's file size limit of 10MB. Also, the option "Use grayscale images" is not needed anymore***
+
+### <p align="center">Linear regression (`houses.csv`)</p>
 
 
 https://github.com/user-attachments/assets/18eecd0d-ce30-4e88-93ee-4f7696d807b0
 
+---
 
-
-### Logistic regression (framingham.csv)
+### <p align="center">Logistic regression (`framingham.csv`)</p>
 
 
 
 https://github.com/user-attachments/assets/2dc4374f-e046-46a3-8d25-04c4f4c05db3
 
+---
 
-
-### Multi-label classification (3-folds cross-validation) (framingham.csv)
+### <p align="center">Multi-label classification (3-folds cross-validation) (`framingham.csv`)</p>
+  > ***The plots disappear here because I minimized them***
 
 https://github.com/user-attachments/assets/9af34dbf-9ef9-448b-8d8d-f3e5a97f0fad
 
-### Multi-class classification (mnist_png.rar)
+
+---
+
+### <p align="center">Multi-class classification (`mnist_png.rar`)</p>
 
 
 
 https://github.com/user-attachments/assets/479b44f2-3759-4462-a155-1116f7a43019
 
-### Multi-class classification (RGB) (cars.rar)
+---
+
+### <p align="center">Multi-class classification (RGB) (`cars.rar`)</p>
 
 
 
 https://github.com/user-attachments/assets/d2557369-eee7-42d3-ab3f-01ee4c0c41d4
 
-### Labeling images
+
+---
+
+### <p align="center">Labeling images</p>
 
 
 
 https://github.com/user-attachments/assets/c983ead9-d4a5-4548-bea0-0289c64a371f
 
+---
 
-
-### Resizing images
+### <p align="center">Resizing images</p>
 
 
 https://github.com/user-attachments/assets/5b47e22f-8db8-405c-8dc3-d6ec64956d0d
 
-## How to use
+
+# How to use
 
 There are two types of datasets that are currently accepted:
-- Comma `,` delimited `.csv` files where each variable is in a separate column and each row is an individual sample
-- Images of the same dimension, no need to be square (i.e. 28x28, 106x80, etc.)
 
-Training a model (from scratch or by retraining an already existing model):
-  1. Setup the model with its architecture (or optionally load a model from a `.json` config file within the `models` folder)
-  2. Adjust the hyperparameters (i.e. learning rate, batch size, etc...)
-  3. Run the script
-  4. Adjust the settings by following the prompts
-  5. Wait for the training to finish
-  6. (Optional) Predict and/or evaluate metrics on final model
-  7. (Optional) Save the model
+1. Comma '`,`' delimited `.csv` files where each variable is in a separate column and each row is an individual sample
+2. Images of the same dimension, no need to be square (i.e. 28x28, 106x80, etc.)
 
-Loading a model for prediction only:
-  1. Load the model (must be within the folder `models`)
-  2. Type `1` for prediction only when prompted
+---
 
-### Defining a model from scratch
-  The class that defines a model is `Model`, and you can make as many instances as you want. However, since throughout this entire time I have only experimented with an individual model (outside of k-folds cross-validation), I have made a global variable `model` which defines the model to be defined/loaded_into, so you may encounter issues doing otherwise without making changes to the code.
+## Training a model (from scratch or by retraining an already existing model):
+1. Setup the model
+   > *Define a model architecture in `main.py` or load a `.json` config file within the `models` folder*
+2. Adjust the hyperparameters
+   > - Learning rate: `lr`
+   > - Batch size: `batch_size`
+   > - Training steps: `steps`
+   > - **(Optional)** Plot update interval: `plot_update_every_n_batches`
+3. Run the script
+4. Adjust the settings by following the prompts
+5. Wait for the training to finish
+6. **(Optional)** Predict and/or evaluate metrics on final model
+7. **(Optional)** Save the model
 
-  You can setup the architecture right below the line `if not loaded_model:`.
+
+## Loading a model for prediction only:
+1. Load the model (must be within the folder `models`)
+2. Type `1` for prediction only when prompted
+
+## Defining a model from scratch
+  You can setup the architecture right below the line `if not loaded_model:` and before `model.setup_done()`, by running the relevant setup functions of the `model` variable.
+
   A `Layer` instance defines a layer.
   A layer has:
-  - `layer_num`: Starting at 0, at which position in the network is the layer at. This is so that you don't need to add layers at a specific order and they get sorted in ascending order later.
-  - `layer_dimension`: Number of nodes within the layer.
-  - `layer_type`: One of `0` (input layer), `1` (hidden layer), `2` (output layer).
-  - (Optional) `l1_rate`: L1 regularization rate
-  - (Optional) `l2_rate`: L2 regularization rate
+  > `num`: Starts at `0` and identifies the position of the layer within the network. You don't need to add layers in ascending order, as they will get sorted based on this variable later when `setup_done` is called.<br><br>
+  > `dim`: Number of nodes within the layer.<br>
+  > `type`: `0` (input layer), `1` (hidden layer), or `2` (output layer).<br>
+  > **(Optional)** `l1_rate`: L1 regularization rate<br>
+  > **(Optional)** `l2_rate`: L2 regularization rate
+
+## Activation functions
+  > `linear`: Linear<br>
+  > `relu`: Rectified Linear Unit<br>
+  > `sigmoid`: Sigmoid<br>
+  > `softmax`: Softmax
+
+## Loss functions
+  > `loss_mse`: Mean squared error<br>
+  > `loss_binary_crossentropy`: Binary cross-entropy<br>
+  > `loss_categorical_crossentropy`: Categorical cross-entropy
 
   The model setup part is pretty intuitive and self-explanatory:
 
-  * Activation functions
-    - `linear`: Linear
-    - `relu`: Rectified Linear Unit
-    - `sigmoid`: Sigmoid
-    - `softmax`: Softmax
-  * Loss functions
-    - `loss_mse`: Mean squared error
-    - `loss_binary_crossentropy`: Binary cross-entropy
-    - `loss_categorical_crossentropy`: Categorical cross-entropy
+## Model setup
+1. Add however many layers you want by calling  `model.add_layer(num, dim, type)`<br><br>
+2. Each layer that is not the input layer needs an activation function, which can be set by calling `model.set_activation_function(num, activation_function)`<br><br>
+3. Every model needs a loss function, which can be set by calling `model.set_loss_function(loss_function)`<br><br>
+4. Lastly, you need to call `model.setup_done(is_loaded_model=False)` to ensure that the model architecture is valid (i.e. if there are no missing layers, the layer types are correct, the layers also get sorted by their `num` at this point, etc.)<br><br>
 
-  - To add a layer to the model call `model.add_layer(layer_number, layer_dimension, layer_type)`
-  - Each layer that is not the input layer needs an activation function, and you can set it by calling `model.set_activation_function(layer_number, activation_function)`
-  - Then you need a loss function, which can be set by calling `model.set_loss_function(loss_function)`
-  - Finally, you need to call `model.setup_done(is_loaded_model=False)` to ensure that the model architecture is valid (i.e. if there are no missing layers, the layer types are correct, the layers also get sorted by their `layer_num` at this point, etc.)
-  - (Optional) If you want to regularize a layer, it needs to be done after calling `setup_done`. Then you need to call `model.set_regularization(layer_num, l1_rate, l2_rate)` for the layer(s) you want to regularize.
+## Setting up the hyperparameters
+  There are six hyperparameters:
+  > Learning rate = `lr`<br><br>
+  > Batch size (if this variable is greater than the number of training samples, it defaults to the number of training samples) = `batch_size`<br><br>
+  > Steps = `steps`<br><br>
+  > **(Optional)** Interval (number of batches) in which the plot (if enabled) should be updated = `plot_update_every_n_batches`<br><br>
+  > **(Optional)** L1 regularization & L2 regularization rates = `model.set_regularization(num, l1_rate, l2_rate)`<br><br>
 
-### Setting up the hyperparameters
-  There are four hyperparameters (the optional regularization rates are set alongside the model architecture as explained above):
-  - Learning rate = `lr`
-  - Batch size (if this variable is greater than the number of training samples, it defaults to the number of training samples) = `batch_size`
-  - Steps = `steps`
-  - Interval (number of batches) in which the plot (if enabled) should be updated = `plot_update_every_n_batches`
+## Dataset loading
+### Comma delimited `.csv` dataset
+> The dataset must be within the `datasets` folder.
+You can optionally filter the dataset.
 
-### Dataset loading notes
-  * If training from a `.csv` file, the (optional) `test` and `hold-out` sets will be sampled from the dataset based on a user given percentage.
+If enabled, the test and/or hold-out set(s) will be sampled from the dataset based on the user given percentage.
+### Image dataset
+>**I have only tested 3 types of images so far - RGB, RGBA, and byte sized.**
 
-  * If training an image model, the images for the training set must go inside of the folder `images/train` alongside a `labels.txt` file which contains the filenames and their respective classes, in the format `filename,class`, where each new line represents a new image sample. As for the (optional) test set, you can either choose a percentage of the images within the `train` folder as the test set, or store them separately in the `images/test` folder. If you put images in `images/test` they also need their respective `labels.txt` file.
-  * I have only tested 3 types of images so far - RGB, RGBA, and byte sized.
+> **If you are not on windows and need to resize images and/or write labels, you can simply execute the Python files directly (i.e. `python resize.py` and/or `python write_labels.py`). This is what the `.bat` file does.**
 
-### Running the script
-Now that, if necessary, the model architecture and the hyperparemeters have been setup accordingly, you can run `main.py`.
+For an image dataset you need 3 things:
+>1. Images for the training set, of the same dimension (do not need to be square)
+>2. Unique labels for each of these images in a file called `labels.txt`
+>3. Place all of the images, as well as the respective `labels.txt` in the `images/train` folder
+
+As for the **(optional)** test set, you can either choose a percentage of the images within the `train` folder as the test set, or store them separately in the `images/test` folder. If you choose the latter, the images in `images/test` also need their respective `labels.txt` file.
+
+#### Label images
+
+> A video example on how to automatically label images is shown in [`Labeling images`](#labeling-images)
+
+The `labels.txt` file is in the format `filename,class`, where `filename` is the image filename, `class` is an integer in the range [0, k], where `k` is the number of classes in the model, and each new line represents a separate image.
+
+You can manually fill in the `labels.txt` file or you can also automatically generate it.
+
+The latter requires that you are able to separate all class images into their individual folders. (i.e. if you're using MNIST, you would separate all images of a 0 in a folder called `0`, of a 1 in a folder called `1`, and so on...)
+
+For automatic labeling:
+1. Separate each image pertaining to an individual class into its own folder
+2. Give each folder an unique integer as the name, where the integer ranges from 0 to the number of classes (i.e. 0-9 for MNIST)
+3. Copy and paste the file(s) `utils/write_labels.py` (and `utils/write_labels.bat` if on Windows) and paste on each of these class folders
+4. If on Windows, run `write_labels.bat`, otherwise directly execute `python write_labels.py`, this creates a `labels.txt` file for each folder
+5. Copy all of those images into the `images/train` folder
+6. Concatenate the contents of each `labels.txt` into a new `labels.txt` that also goes into `images/train`
+
+#### **(Optional)** Resize all images to the same dimension
+
+> A video example on how to resize images is shown in [`Resizing images`](#resizing-images)
+
+1. Place the files `utils/resize.py` and `utils/resize.bat` in the same folder as the images you want to resize
+2. Open `resize.py` with a text editor and change the variables `WIDTH` and `HEIGHT` to the width and height you're targeting for all the images
+3. Execute the file `resize.bat`. (Or directly call `python resize.py` if not on Windows)
+4. A new folder called `resized` will be created with all of the resize images inside of it.
+
+## Running the script
+Once everything is setup, you can run `main.py`.
 
 Firstly, you will be prompted whether you want to load a `.json` model config file.
 - If you type in `y`, you will then be prompted for the name of the model file (excluding the `.json` extension), which can be re-trained used for predictions.
-- If you type in `n`, the model architecture will be the one in the `main.py` file, so if you're training a model from scratch you will always need to define a model architecture in that file beforehand.
+- If you type in `n`, the model architecture will be the one defined in the `main.py` file. If you're training a model from scratch you will always need to define a model architecture in this file beforehand.
 
 Then you can choose in which probability distribution you want the weights to be initialized in, `0` for a normal distribution or `1` for a uniform distribution.
 
 Now you will be prompted whether this model will be trained on images or not. Type `y` for yes or `n` for no.
 
-Then you want choose whether to train the model (`0`) or go straight into predicting (`1`).
+Then you need choose whether to train the model or go straight into predicting. Type `0` for training or `1` for predicting.
 
-If you chose to train the model, you will be prompted questions about the dataset.
+If you chose to train the model, you will then be prompted questions about the dataset.
 
-You will be asked whether to plot anything. Type `y` for yes or `n` for no.
+You will be asked whether to plot any model metrics (i.e. training cost, `r^2`, `accuracy`, etc..). Type `y` for yes or `n` for no.
+
 Similarly, you will be prompted whether to perform cross-validation (hold-out (`0`) or k-folds (`1`)), whether to use a test set, and whether to shuffle the dataset (all of it, including the subsets).
 
-(If it is an image model) you will be prompted whether you want to give names to the classes, as by default they're numbers in the range [0, c], where `c` is the number of classes in the last layer of the model.
+(If it is an image model) you will be prompted whether you want to give names to the classes, as by default they're integers in the range [0, c], where `c` is the number of classes in the last layer of the model.
 
-Then, finally and similarly, you will be prompted whether to normalize the dataset. Normalizing puts all of the input features of each sample in the entire dataset within the range [-1, 1]. Then it subtracts the mean (which is calculated after normalizing to this range), and divides by the standard deviation (calculated at the same time as the mean).
+Then, finally and similarly, you will be prompted whether to normalize the dataset.
+  > Normalizing puts all of the input features of each sample in the entire dataset within the range [-1, 1]. Then it subtracts their mean (which is calculated after normalizing to this range), then divides by the standard deviation (calculated at the same time as the mean).
 
-Now you have to wait for the model to finish training. Meanwhile, if you chose to plot anything, you will see the relevant graph(s), which includes the training set(s) loss(es) side by side with the performance metric(s) (i.e. r^2 for regression models or accuracy, precision, recall and f1-score for classification models).
+Now you have to wait for the model to finish training.
 
-Once finished, you can optionally make predictions and then optionally save the model.
+Meanwhile, if you chose to plot anything, you will see the relevant graph(s), which includes the training set(s) loss(es) side by side with the performance metric(s) (i.e. r^2 for regression models, or accuracy, precision, recall and f1-score for classification models).
 
-If you are making predictions on a model trained on a `.csv` dataset, you will have to input the feature values manually for each of them. If it is an image model, you will have to input the filename of your desired image within the `images/predict` folder.
+Once finished, you can optionally make predictions and also optionally save the model.
 
-### Loading/labeling images as dataset
+* If you are making predictions on a model trained on a `.csv` dataset, you will have to input the feature values manually for each of them.
+* If it is an image model, you will have to input the filename of your desired image within the `images/predict` folder.
 
-### Labeling and setting up an image dataset
+---
 
-### Resizing images to a specific dimension
+# How it works
 
-## How it works
+The class that defines a model is `Model`, and you can make as many instances as you want. An instance of this class stores information relevant to the model. However, since throughout this entire time I have only experimented with an individual model (outside of k-folds cross-validation), I have made a global variable `model` which defines the model to be defined/loaded_into, so you may encounter issues doing otherwise without making changes to the code.
 
-## Features
+# Features
 
 - Linear regression
 - Logistic regression
@@ -175,8 +275,7 @@ If you are making predictions on a model trained on a `.csv` dataset, you will h
   - Mean squared error (`loss_mse`)
   - Binary cross-entropy (`loss_binary_crossentropy`)
   - Categorical cross-entropy (`loss_categorical_crossentropy`)
-
-## Notes
+# Notes
 
 - Currently, the only accepted datasets are `.csv` files delimited by a comma `,`, and images, which must be put into the folder `images/train` for training (and testing if it was enabled and no separate folder was chosen), `images/predict` for images to predict once the training is finished or after loading a model, and `images/test` if using a test set and a separate folder was chosen in the settings
 
@@ -199,8 +298,7 @@ If you are making predictions on a model trained on a `.csv` dataset, you will h
 - The `model` class members `sample_features_mean`, `sample_features_std`, `sample_features_variance`, are measured over the training samples (after normalizing the input to the range [-1, 1] but before mean normalizing and standardizing, if normalization was enabled). Meanwhile, the non `model` class members, such as `training_features_mean` and `test_features_mean`, are the measurements after the input is normalized (if that is the case, otherwise `model.sample_features_mean` is the same as `training_features_mean`, for example). That is because whenever the input needs to be re-normalized, such as in the case of predicting an arbitrary user input once the model is trained, you need to know the `mean` and `std` before mean normalizing and standardizing but after normalizing to [-1, 1], as well as the minimum and maximum values of each input feature in order to normalize it to [-1 ,1], which is what the variable `model.feature_min_maxes` is used for. These are also used for performance measurements and reversing the normalization.
 
 - I could not make a model that performs well predicting different car brands of the same color (RGB), using a similar architecture to the model that predicts car colors. I don't know the exact reason for this, although it is evidently a more complex task than the other examples. Possibly solvable with convolutional layers?
-
-## Todo
+# Todo
 
 - Implement the same behavior of optionally storing images in a separate folder as the `test` folder for the `holdout` folder
 
@@ -252,4 +350,4 @@ If you are making predictions on a model trained on a `.csv` dataset, you will h
 
 - Let user input learning rate, regularization rate and the type (L1 or L2), batch size, and the frequency at which the plot (if enabled) is updated? Also worried about too many settings.
 
-- Prompt/variable `uses_grayscale_images` needs to be reworked. This is necessary for knowing when to plot images in a grayscale colormap within matplotlib, but also when the image has an 8 bit depth instead of 24/32, the latter can instead be infered programmatically, and subsequently the colormap to be used, then I can get rid of this prompt and variable, which are misleading. i.e. `get_bit_depth(img) -> for each byte: store byte as individual color channel -> if img_bit_depth == 8: plot(cmap='gray') else: plot()`
+- Upload already labeled versions of the MNIST and cars datasets

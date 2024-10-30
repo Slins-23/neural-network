@@ -1,17 +1,11 @@
 import numpy as np # Use for matrix math
-import pandas as pd # Used parsing and subsequent loading of the dataset
 import math
-from dataset import Dataset, Entry
+from dataset import Dataset
 import matplotlib.pyplot as plt
-import matplotlib
-import threading
 import json
-from matplotlib.lines import Line2D
-from matplotlib.animation import FuncAnimation
 import random
 import os
 import copy
-from multiprocessing import Process
 from PIL import Image
 
 # Cost function is the accumulation of the loss function over a given batch of the dataset
@@ -2732,6 +2726,9 @@ def randomize_dataset(samples, dependent_values):
         dependent_values[idx, :] = dependent_values_to_swap
 
 MODELS_FOLDER = "models/"
+IMAGES_FOLDER = "images/"
+DATASETS_FOLDER = "datasets/"
+
 nn = Network()
 model = Model()
 loaded_model = False
@@ -2884,7 +2881,7 @@ plot_update_every_n_batches = 1
 # Load and preprocess dataset
 #dataset_file = "dataset.csv"
 
-IMAGES_FOLDER = "images/"
+
 
 if not loaded_model:
     is_image_model = False
@@ -3123,7 +3120,7 @@ if use_kfolds:
     print(f"Folds set for cross-validation: {crossvalidation_folds}")
 
 if not model.is_image_model:
-    dataset = Dataset()
+    dataset = Dataset(DATASETS_FOLDER)
 
     if not loaded_model:
         model.feature_list = dataset.feature_list
