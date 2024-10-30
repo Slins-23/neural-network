@@ -2482,9 +2482,12 @@ def get_image_pixel_matrix(folder, image, model=None):
         if type(pixel) == int or type(pixel) == float:
             parsed_pixels.append(pixel)
         else:
-            if model != None:
+            if model != None and model.image_bit_depth != None:
                 if model.image_bit_depth == 1 or model.image_bit_depth == 8:
-                    parsed_pixels.append(pixel[0])
+                    if type(pixel) == list or type(pixel) == tuple or type(pixel) == dict:
+                        parsed_pixels.append(pixel[0])
+                    else:
+                        parsed_pixels.append(pixel)
                 else:
 
                     ## If predicting an RGBA image on an RGB trained model
@@ -2516,6 +2519,7 @@ def get_image_pixel_matrix(folder, image, model=None):
         # else:
         #     for color_channel in pixel:
         #         parsed_pixels.append(color_channel)
+
 
     parsed_pixels = np.matrix(parsed_pixels).transpose()
     return parsed_pixels

@@ -23,6 +23,12 @@
       - [**(Optional)** Resize all images to the same dimension](#optional-resize-all-images-to-the-same-dimension)
   - [Running the script](#running-the-script)
 - [How it works](#how-it-works)
+- [Example model architectures](#example-model-architectures)
+  - [Linear regression (`houses.csv`)](#linear-regression-housescsv-1)
+  - [Logistic regression (`framingham.csv`)](#logistic-regression-framinghamcsv-1)
+  - [Multi-label classification (`framingham.csv`)](#multi-label-classification-framinghamcsv)
+  - [Multi-class classification (`mnist.rar`)](#multi-class-classification-mnistrar)
+  - [Multi-class classification (RGB) (`cars.rar`)](#multi-class-classification-rgb-carsrar-1)
 - [Features](#features)
 - [Notes](#notes)
 - [Todo](#todo)
@@ -246,6 +252,51 @@ Once finished, you can optionally make predictions and also optionally save the 
 # How it works
 
 The class that defines a model is `Model`, and you can make as many instances as you want. An instance of this class stores information relevant to the model. However, since throughout this entire time I have only experimented with an individual model (outside of k-folds cross-validation), I have made a global variable `model` which defines the model to be defined/loaded_into, so you may encounter issues doing otherwise without making changes to the code.
+
+# Example model architectures
+> Below are models that I used for testing and experimenting that are seemingly decently accurate
+## Linear regression (`houses.csv`)
+- Independent variable: `area_m2` (Area in m^2 of a house)
+- Dependent variable: `price_brl` (Price in Brazilian reais)
+- Normalized
+- `lr`: 0.1
+- `batch_size`: 11293
+- `steps`: 25
+
+## Logistic regression (`framingham.csv`)
+- Independent variable: `sysBP`  (Systolic blood pressure)
+- Dependent variable: `prevalentHyp` (Whether the person has a hypertension diagnosis or not)
+- Normalized
+- `lr`: 1
+- `batch_size`: 300
+- `steps`: 50
+
+## Multi-label classification (`framingham.csv`)
+- Independent variables: `age`, `totChol`, `sysBP`, `glucose` (Person age, cholesterol, systolic blood pressure and glucose)
+- Dependent variables: `prevalentHyp`, `prevalentStrok`, `currentSmoker`, `diabetes` (Whether person is diagnosed with hypertension, has had a stroke, is currently a smoker, and has diabetes)
+- Normalized
+- `lr`: 1
+- `batch_size`: 300
+- `steps`: 230
+
+## Multi-class classification (`mnist.rar`)
+- Independent variable: Image pixels (28*28, byte-sized color channel)
+- Dependent variables: Integers in range [0, 9]
+- Normalized
+- `lr`: 0.03
+- `batch_size`: 32
+- `steps`: 5
+- Only used 50% of the entire training set by reserving the other 50% for a test set
+
+## Multi-class classification (RGB) (`cars.rar`)
+- Independent variable: Image pixels (106*80*3, 3 RGB color channels)
+- Dependent variables: Integers in range [0, 2] that I renamed to the car colors (["black", "blue", "red"])
+- Normalized
+- `lr`: 0.005
+- `batch_size`: 32
+- `steps`: 5
+
+--------------------------
 
 # Features
 
