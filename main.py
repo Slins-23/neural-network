@@ -2503,6 +2503,9 @@ def get_image_pixel_matrix(folder, image, model=None):
                         for color_channel in pixel:
                             parsed_pixels.append(color_channel)
                         parsed_pixels.append(255)
+                    else:
+                        for color_channel in pixel:
+                            parsed_pixels.append(color_channel)
             else:
                 for color_channel in pixel:
                     parsed_pixels.append(color_channel)
