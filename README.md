@@ -16,12 +16,14 @@
   - [Loss functions](#loss-functions)
   - [Model setup](#model-setup)
   - [Setting up the hyperparameters](#setting-up-the-hyperparameters)
-  - [Dataset loading](#dataset-loading)
-    - [Comma delimited `.csv` dataset](#comma-delimited-csv-dataset)
+  - [Dataset setup](#dataset-setup)
+    - [Comma-delimited '`,`' dataset](#comma-delimited--dataset)
     - [Image dataset](#image-dataset)
       - [Label images](#label-images)
       - [**(Optional)** Resize all images to the same dimension](#optional-resize-all-images-to-the-same-dimension)
   - [Running the script](#running-the-script)
+    - [Setting up a comma-delimited dataset](#setting-up-a-comma-delimited-dataset)
+    - [(Optional) Filtering a comma-delimited dataset](#optional-filtering-a-comma-delimited-dataset)
 - [How it works](#how-it-works)
 - [Example model architectures](#example-model-architectures)
   - [Linear regression (`houses.csv`)](#linear-regression-housescsv-1)
@@ -35,6 +37,10 @@
 
 # Summary
 A Python implementation from scratch of a neural network (using NumPy for matrix operations), made primarily for learning purposes.
+
+>You can find the example datasets, as well as the already labeled versions of the image datasets in the folder `datasets`.<br>
+You can also find the example architectures for the models in the example videos in the section [Example model architectures](#example-model-architectures).
+
 
 Tested with Python 3.10.6
 
@@ -107,7 +113,7 @@ https://github.com/user-attachments/assets/5b47e22f-8db8-405c-8dc3-d6ec64956d0d
 
 There are two types of datasets that are currently accepted:
 
-1. Comma '`,`' delimited `.csv` files where each variable is in a separate column and each row is an individual sample
+1. Comma-delimited '`,`' files where each variable is in a separate column and each row is an individual sample
 2. Images of the same dimension, no need to be square (i.e. 28x28, 106x80, etc.)
 
 ---
@@ -169,12 +175,14 @@ There are two types of datasets that are currently accepted:
   > **(Optional)** Interval (number of batches) in which the plot (if enabled) should be updated = `plot_update_every_n_batches`<br><br>
   > **(Optional)** L1 regularization & L2 regularization rates = `model.set_regularization(num, l1_rate, l2_rate)`<br><br>
 
-## Dataset loading
-### Comma delimited `.csv` dataset
-> The dataset must be within the `datasets` folder.
-You can optionally filter the dataset.
+## Dataset setup
+### Comma-delimited '`,`' dataset
+The dataset must be within the `datasets` folder, and be comma-separated (i.e. each variable is separated by a comma '`,`' and each sample is separated y a newline).
+You can also optionally filter the dataset at runtime.
 
-If enabled, the test and/or hold-out set(s) will be sampled from the dataset based on the user given percentage.
+The dataset loading/filtering process is further explained in the sections [Setting up a comma-delimited dataset](#setting-up-a-comma-delimited-dataset) and [(Optional) Filtering a comma-delimited dataset](#filtering-a-comma-delimited-dataset).
+
+>If enabled, the test and/or hold-out set(s) will be sampled from the dataset based on the user given percentage.
 ### Image dataset
 >**I have only tested 3 types of images so far - RGB, RGBA, and byte sized.**
 
@@ -218,7 +226,7 @@ For automatic labeling:
 Once everything is setup, you can run `main.py`.
 
 Firstly, you will be prompted whether you want to load a `.json` model config file.
-- If you type in `y`, you will then be prompted for the name of the model file (excluding the `.json` extension), which can be re-trained used for predictions.
+- If you type in `y`, you will then be prompted for the name of the model file (excluding the `.json` extension), which can be re-trained and/or used for predictions.
 - If you type in `n`, the model architecture will be the one defined in the `main.py` file. If you're training a model from scratch you will always need to define a model architecture in this file beforehand.
 
 Then you can choose in which probability distribution you want the weights to be initialized in, `0` for a normal distribution or `1` for a uniform distribution.
@@ -227,13 +235,40 @@ Now you will be prompted whether this model will be trained on images or not. Ty
 
 Then you need choose whether to train the model or go straight into predicting. Type `0` for training or `1` for predicting.
 
-If you chose to train the model, you will then be prompted questions about the dataset.
-
 You will be asked whether to plot any model metrics (i.e. training cost, `r^2`, `accuracy`, etc..). Type `y` for yes or `n` for no.
 
 Similarly, you will be prompted whether to perform cross-validation (hold-out (`0`) or k-folds (`1`)), whether to use a test set, and whether to shuffle the dataset (all of it, including the subsets).
 
-(If it is an image model) you will be prompted whether you want to give names to the classes, as by default they're integers in the range [0, c], where `c` is the number of classes in the last layer of the model.
+Now, if you chose to train the model, you will then be prompted about the dataset.
+
+If it is an image model you will be prompted whether you want to give names to the classes, as by default they're integers in the range [0, c], where `c` is the number of classes in the last layer of the model.
+
+If it is a dataset that is comma-delimited, you will need to choose the independent and dependent variables, as can be seen in the section [Setting up a comma-delimited dataset](#setting-up-a-comma-delimited-dataset) below.
+
+---
+### Setting up a comma-delimited dataset
+> Each possible feature/class is a separate column, separated by a comma.
+1. Input the dataset filename, including the extension (must be within the `datasets` folder)
+ 2. Type in `0` in order to select by column/feature name, or `1` in order to select by the number (index)
+3. Type in the feature identifier by whichever mean you chose to
+4. Type in `i` in order to select the variale as independent (used to predict) or `d` as dependent
+5. Now you need to choose whether to keep choosing independent and/or dependent variables or continue running the script. Type in `y` to choose another feature/class or `n` in order to continue the script.<br>
+    - > You can keep doing this as many times as you need. Each model needs at least one independent variable and one dependent variable. 
+6. Type in `y` in order to filter the dataset or `n` otherwise. More information on dataset filtering available in the below section [(Optional) Filtering a comma-delimited dataset](#optional-filtering-a-comma-delimited-dataset)
+
+### (Optional) Filtering a comma-delimited dataset
+> The following are valid comparison operators: `==`, `!=`, `<`, `<=`, `>=`, `>`
+
+Here you can filter out samples from the dataset by making comparisons using the comparison operators above. This works for both independent and dependent variables. You can also do it multiple times. The filtered variables do not need to be the independent or dependent variables, as long as they are in the dataset.
+
+1. Select which variable(s) to filter, by typing in the variable name, with no whitespace and separated by commas if filtering more than one variable at once.
+   > i.e. 'area_m2', 'area_m2,price_brl', 'lat,lon', etc...
+2. Type the target number which will be compared against the given variable
+3. Type a valid comparison operator (one of `==`, `!=`, `<`, `<=`, `>=` or `>`)
+4. Type in `y` to keep filtering or `n` to continue the script.
+
+> When filtering multiple variables at once, the filtering in separate steps internally.
+---
 
 Then, finally and similarly, you will be prompted whether to normalize the dataset.
   > Normalizing puts all of the input features of each sample in the entire dataset within the range [-1, 1]. Then it subtracts their mean (which is calculated after normalizing to this range), then divides by the standard deviation (calculated at the same time as the mean).
@@ -244,7 +279,7 @@ Meanwhile, if you chose to plot anything, you will see the relevant graph(s), wh
 
 Once finished, you can optionally make predictions and also optionally save the model.
 
-* If you are making predictions on a model trained on a `.csv` dataset, you will have to input the feature values manually for each of them.
+* If you are making predictions on a model trained on a comma-delimited '`,`' dataset, you will have to input the feature values manually for each of them.
 * If it is an image model, you will have to input the filename of your desired image within the `images/predict` folder.
 
 ---
@@ -258,6 +293,17 @@ The class that defines a model is `Model`, and you can make as many instances as
 ## Linear regression (`houses.csv`)
 - Independent variable: `area_m2` (Area in m^2 of a house)
 - Dependent variable: `price_brl` (Price in Brazilian reais)
+
+>**Model**<br><br>
+>--
+>Layers
+> - Input
+>   - Nodes: 1
+> - Output
+>   - Nodes: 1
+>   - Activation function: `linear`<br>
+> ---
+> Loss function: `loss_mse`
 - Normalized
 - `lr`: 0.1
 - `batch_size`: 11293
@@ -266,6 +312,19 @@ The class that defines a model is `Model`, and you can make as many instances as
 ## Logistic regression (`framingham.csv`)
 - Independent variable: `sysBP`  (Systolic blood pressure)
 - Dependent variable: `prevalentHyp` (Whether the person has a hypertension diagnosis or not)
+>**Model**<br><br>
+> ---
+>Layers
+> - Input
+>   - Nodes: 1
+> - Hidden
+>   - Nodes: 5
+>   - Activation function: `relu`
+> - Output
+>   - Nodes: 1
+>   - Activation function: `sigmoid`<br>
+> ---
+> Loss function: `loss_binary_crossentropy`
 - Normalized
 - `lr`: 1
 - `batch_size`: 300
@@ -274,6 +333,19 @@ The class that defines a model is `Model`, and you can make as many instances as
 ## Multi-label classification (`framingham.csv`)
 - Independent variables: `age`, `totChol`, `sysBP`, `glucose` (Person age, cholesterol, systolic blood pressure and glucose)
 - Dependent variables: `prevalentHyp`, `prevalentStrok`, `currentSmoker`, `diabetes` (Whether person is diagnosed with hypertension, has had a stroke, is currently a smoker, and has diabetes)
+>**Model**<br><br>
+>---
+>Layers
+> - Input
+>   - Nodes: 4
+> - Hidden
+>   - Nodes: 50
+>   - Activation function: `relu`
+> - Output
+>   - Nodes: 4
+>   - Activation function: `sigmoid`<br>
+>---
+> Loss function: `loss_binary_crossentropy`
 - Normalized
 - `lr`: 1
 - `batch_size`: 300
@@ -282,6 +354,19 @@ The class that defines a model is `Model`, and you can make as many instances as
 ## Multi-class classification (`mnist.rar`)
 - Independent variable: Image pixels (28*28, byte-sized color channel)
 - Dependent variables: Integers in range [0, 9]
+>**Model**<br><br>
+> ---
+>Layers
+> - Input
+>   - Nodes: 784 (28x28)
+> - Hidden
+>   - Nodes: 50
+>   - Activation function: `relu`
+> - Output
+>   - Nodes: 10
+>   - Activation function: `softmax`<br>
+> ---
+> Loss function: `loss_categorical_crossentropy`
 - Normalized
 - `lr`: 0.03
 - `batch_size`: 32
@@ -291,6 +376,18 @@ The class that defines a model is `Model`, and you can make as many instances as
 ## Multi-class classification (RGB) (`cars.rar`)
 - Independent variable: Image pixels (106*80*3, 3 RGB color channels)
 - Dependent variables: Integers in range [0, 2] that I renamed to the car colors (["black", "blue", "red"])
+>**Model**<br><br>
+>Layers
+> - Input
+>   - Nodes: 25440 (106x80x3)
+> - Hidden
+>   - Nodes: 50
+>   - Activation function: `relu`
+> - Output
+>   - Nodes: 3
+>   - Activation function: `softmax`<br>
+>
+> Loss function: `loss_categorical_crossentropy`
 - Normalized
 - `lr`: 0.005
 - `batch_size`: 32
@@ -304,14 +401,14 @@ The class that defines a model is `Model`, and you can make as many instances as
 - Logistic regression
 - Multi-label classification
 - Multi-class classification
-- Accepts `.csv` delimited by `,` and images (those go in the `images/train` folder alongside a `labels.txt` file, which, in each line, contains the name an image within the folder, followed by a comma, and which class it pertains to i.e. `image01.png,0`)
+- Accepts comma-delimited '`,`' files and images (those go in the `images/train` folder alongside a `labels.txt` file, which, in each line, contains the name an image within the folder, followed by a comma, and which class it pertains to i.e. `image01.png,0`)
 - (Optional) Save and load models (.json files with model metadata such as each layer's weights, model architecture, information on the dataset it was trained, etc...)
 - (Optional) Normalization (normalizes to range [-1, 1], mean normalizes, then standardizes)
 - (Optional) L1 & L2 regularization
 - Arbitrary batch size
 - Arbitrary number of layers and nodes
 - Xavier (linear, sigmoid, softmax) and HE (relu) weight initialization (optionally normally or uniformly distributed)
-- Loading and filtering dataset (.csv) by column names or column numbers, choose dependent or independent variable, and also (optionally) filter by comparison (i.e. keep only the values for the given column which are >, <, ==, or != to a certain value)
+- Loading and filtering dataset (comma-delimited '`,`') by column names or column numbers, choose dependent or independent variable, and also (optionally) filter by comparison (i.e. keep only the values for the given column which are >, <, ==, or != to a certain value)
 - (Optional) Shuffle dataset
 - (Optional) Measuring/evaluating dataset for performance metrics on an arbitrary model (the function responsible for this is `measure_model_on_dataset` `@main.py`)
 - (Optional) Hold-out, k-folds cross-validation, and test sets
@@ -328,11 +425,11 @@ The class that defines a model is `Model`, and you can make as many instances as
   - Categorical cross-entropy (`loss_categorical_crossentropy`)
 # Notes
 
-- Currently, the only accepted datasets are `.csv` files delimited by a comma `,`, and images, which must be put into the folder `images/train` for training (and testing if it was enabled and no separate folder was chosen), `images/predict` for images to predict once the training is finished or after loading a model, and `images/test` if using a test set and a separate folder was chosen in the settings
+- Currently, the only accepted datasets are files delimited by a comma '`,`', and images, which must be put into the folder `images/train` for training (and testing if it was enabled and no separate folder was chosen), `images/predict` for images to predict once the training is finished or after loading a model, and `images/test` if using a test set and a separate folder was chosen in the settings
 
 - Normalization (prior to mean normalization and standardizing) is within the range [-1, 1], by design choice.
 - Dataset loader skips first row and expects each variable to be a different column
-- The class names for a model trained on a `.csv` dataset will be whatever column names they had, meanwhile, for images they will be integers increasing from `0` to `k` where `k` is the number of classes, or you can optionally manually input a label for each of those classes.
+- The class names for a model trained on a comma-delimited '`,`' dataset will be whatever column names they had, meanwhile, for images they will be integers increasing from `0` to `k` where `k` is the number of classes, or you can optionally manually input a label for each of those classes.
 - Expect bugs, inaccuracies, lack of speed, high memory consumption, and general lack of optimization.
 - A practical example of the script exceeding available memory and crashing for me was running the MNIST example, but instead of using a batch size of 32 as shown in the video, using a batch size of 1 caused it to crash in between the 4th and 5th steps for me, with 32GB RAM.
 - Currently the script needs images of the same dimension (no need to be square), as the input layer dimension is pre-defined.

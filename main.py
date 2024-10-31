@@ -2668,7 +2668,7 @@ def load_image_dataset(folder, model=None, unique_dataset=True):
 def plot_image_from_sample(model, sample):
     tmp_sample = sample
 
-    # Manually re-normalizing sample from range [-1, 1] to range [0, 1], as matplotlib simply ignores values below 0.
+    # Manually re-normalizing sample from range [-1, 1] to range [0, 1], as matplotlib ignores values below 0.
     if model.normalized:
         # tmp_sample = (sample + 1) / 2
         for feature in range(sample.shape[0]):
@@ -2786,18 +2786,16 @@ if not loaded_model:
     model.set_loss_function(loss_mse)
     '''
     # model.add_layer(0, 106*80*3, 0)
-    model.add_layer(0, 106*80*3, 0)
+    model.add_layer(0, 1, 0)
     # model.add_layer(1, 50, 1)
     # model.add_layer(2, 1, 2)
     # model.set_activation_function(1, relu)
-    model.add_layer(1, 50, 1)
-    model.set_activation_function(1, relu)
 
-    model.add_layer(2, 3, 2)
-    model.set_activation_function(2, softmax)
+    model.add_layer(1, 1, 2)
+    model.set_activation_function(1, linear)
     # model.set_activation_function(2, linear)
     # model.set_loss_function(loss_mse)
-    model.set_loss_function(loss_categorical_crossentropy)
+    model.set_loss_function(loss_mse)
 
     model.setup_done(is_loaded_model=False)
     model.print_architecture()
@@ -2862,13 +2860,13 @@ Predicted value (price_brl): 554333.8209315466
 
 print(f"Initial weights")
 model.print_weights()
-lr = 0.005
+lr = 0.1
 # batch_size = 32
 # batch_size = 1
-batch_size = 32
+batch_size = 11293
 # steps = 5
 # steps = 300
-steps = 5
+steps = 25
 # batches_per_step = int(11293 / batch_size)
 
 plot_update_every_n_batches = 1

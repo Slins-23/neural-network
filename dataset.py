@@ -35,7 +35,7 @@ class Dataset:
 
         # Loads dataset and entries
         while True:
-            self.dataset_filename = input("Dataset filename (within the folder f`{DATASET_FOLDER}`): ")
+            self.dataset_filename = input(f"Dataset filename (within the folder `{DATASET_FOLDER}`): ")
             if os.path.isfile(DATASET_FOLDER + self.dataset_filename):
                 self.populate_entries()
                 print("Dataset loaded.")
@@ -166,8 +166,9 @@ class Dataset:
         with open(self.DATASET_FOLDER + self.dataset_filename, "r", encoding="utf-8") as dataset:
             rows = dataset.readlines()
             column_names = rows[0].replace("\n", "").split(",")
-            columns = column_names
-            self.column_types = [None for _ in range(len(columns))]
+            column_names = list(map(lambda column_name: column_name.strip(), column_names))
+            self.columns = column_names
+            self.column_types = [None for _ in range(len(self.columns))]
             print(f"There are {len(column_names)} columns. These are the column names, in ascending column order: {', '.join(column_names)}.")
             print(f"WARNING: Currently, when training models with a dependent variable that is a string, you will only be predict values with it once (after it finishes training), this is because a way to store and load dictionaries for string<->number conversions are yet to be implemented. The model architecture and weights can still be saved however. Just keep in mind that it won't work if you try to load it to make predictions.")
             column_warning_printed = False
@@ -200,7 +201,7 @@ class Dataset:
                             print(f"The column name is the exact string in that column.")
                             name_warning_printed = True
 
-                        name = input("Column name: ")
+                        name = input("Column name: ").strip()
                         if name not in column_names:
                             print(f"Invalid column name: {name}. Valid column names: {', '.join(column_names)}")
                             continue
@@ -242,7 +243,7 @@ class Dataset:
                             print("WARNING! FOR THIS TO WORK PROPERLY, EACH COLUMN NAME MUST BE UNIQUE.")
                             print(f"The column number is an integer in the range [0, {len(column_names) - 1}].")
                             print("You cannot choose an already chosen column number, as it leads to redundancy and linear dependence.")
-                            print("Exactly one column must be the dependent feature.")
+                            print("One column can only be a single dependent variable.")
                             column_warning_printed = True
                         # add by number
 
@@ -272,7 +273,7 @@ class Dataset:
                             print(f"Invalid data type {data_type}. Must be one of 'str' or 'float'.")
                             continue
 
-                        dependent_or_independent = input("Dependent or independent feature (d/i)? ")
+                        dependent_or_independent = input("Dependent or independent feature (d/i)? ").strip()
                         if dependent_or_independent not in ['d', 'i']:
                             print(f"Invalid feature type: {dependent_or_independent}. Must be 'd' for dependent variable, or 'i' for independent variable.")
                             continue
@@ -362,54 +363,52 @@ class Dataset:
         print("Finished populating the entries.")
 
     def custom_filter(self, entry, target_features, comparison_targets, comparison_operators):
+        cmp = True
         for feature, target, operator in zip(target_features, comparison_targets, comparison_operators):
-            cmp = True
-
-            if feature != "distance_builtin":
-                match operator:
-                    case '==':
-                        if feature in self.class_list:
-                            cmp = entry.dependent_values[feature] == target
-                        elif feature in self.feature_list:
-                            cmp = entry.features[feature] == target
-                        else:
-                            cmp = entry.column_value_dict[feature] == target
-                    case '!=':
-                        if feature in self.class_list:
-                            cmp = entry.dependent_values[feature] != target
-                        elif feature in self.feature_list:
-                            cmp = entry.features[feature] != target
-                        else:
-                            cmp = entry.column_value_dict[feature] != target
-                    case '<':
-                        if feature in self.class_list:
-                            cmp = entry.dependent_values[feature] < target
-                        elif feature in self.feature_list:
-                            cmp = entry.features[feature] < target
-                        else:
-                            cmp = entry.column_value_dict[feature] < target
-                    case '<=':
-                        if feature in self.class_list:
-                            cmp = entry.dependent_values[feature] <= target
-                        elif feature in self.feature_list:
-                            cmp = entry.features[feature] <= target
-                        else:
-                            cmp = entry.column_value_dict[feature] <= target
-                    case '>=':
-                        if feature in self.class_list:
-                            cmp = entry.dependent_values[feature] >= target
-                        elif feature in self.feature_list:
-                            cmp = entry.features[feature] >= target
-                        else:
-                            cmp = entry.column_value_dict[feature] >= target
-                    case '>':
-                        if feature in self.class_list:
-                            cmp = entry.dependent_values[feature] > target
-                        elif feature in self.feature_list:
-                            cmp = entry.features[feature] > target
-                        else:
-                            cmp = entry.column_value_dict[feature] > target
-
+            match operator:
+                case '==':
+                    if feature in self.class_list:
+                        cmp = entry.dependent_values[feature] == target
+                    elif feature in self.feature_list:
+                        cmp = entry.features[feature] == target
+                    else:
+                        cmp = entry.column_value_dict[feature] == target
+                case '!=':
+                    if feature in self.class_list:
+                        cmp = entry.dependent_values[feature] != target
+                    elif feature in self.feature_list:
+                        cmp = entry.features[feature] != target
+                    else:
+                        cmp = entry.column_value_dict[feature] != target
+                case '<':
+                    if feature in self.class_list:
+                        cmp = entry.dependent_values[feature] < target
+                    elif feature in self.feature_list:
+                        cmp = entry.features[feature] < target
+                    else:
+                        cmp = entry.column_value_dict[feature] < target
+                case '<=':
+                    if feature in self.class_list:
+                        cmp = entry.dependent_values[feature] <= target
+                    elif feature in self.feature_list:
+                        cmp = entry.features[feature] <= target
+                    else:
+                        cmp = entry.column_value_dict[feature] <= target
+                case '>=':
+                    if feature in self.class_list:
+                        cmp = entry.dependent_values[feature] >= target
+                    elif feature in self.feature_list:
+                        cmp = entry.features[feature] >= target
+                    else:
+                        cmp = entry.column_value_dict[feature] >= target
+                case '>':
+                    if feature in self.class_list:
+                        cmp = entry.dependent_values[feature] > target
+                    elif feature in self.feature_list:
+                        cmp = entry.features[feature] > target
+                    else:
+                        cmp = entry.column_value_dict[feature] > target
+            
             if not cmp:
                 return False
 
@@ -418,13 +417,14 @@ class Dataset:
     def filter_entries(self, should_filter, filtered_list):
         if should_filter:
             print("Note: The filtering occurs only once, for all features.")
+            print(f"Available variables: {','.join(self.columns)}")
 
             valid_operators = ["==", "!=", "<", "<=", ">=", ">"]
             target_features = []
             comparison_targets = []
             comparison_operators = []
             while True:
-                l_target_features = input(f"Which features/columns to filter (comma-separated and no whitespace i.e. 'area_m2,price_brl')? Options: {', '.join(self.columns)} ")
+                l_target_features = input(f"Which features/columns to filter? (comma-separated and no whitespace): ")
 
                 l_target_features = l_target_features.split(",")
 
@@ -450,7 +450,7 @@ class Dataset:
                         feature_index = self.feature_list.index(target_feature)
                         feature_type = self.feature_types[feature_index]
 
-                        comparison_target = input(f"Type in the target value to compare the column '{target_feature}' against. Your input must be a valid '{feature_type}'! ")
+                        comparison_target = input(f"Type in the target value to compare the column '{target_feature}' against. Your input must be a valid '{feature_type}'! ").strip()
 
                         if feature_type == "str" and comparison_target not in self.nan_values.keys():
                             print(f"Error: Invalid target value. Given value '{comparison_target}' is not in the dataset.")
@@ -469,7 +469,7 @@ class Dataset:
                         class_index = self.class_list.index(target_feature)
                         class_type = self.class_types[class_index]
 
-                        comparison_target = input(f"Type in the target value to compare the column '{target_feature}' against. Your input must be a valid '{class_type}'! ")
+                        comparison_target = input(f"Type in the target value to compare the column '{target_feature}' against. Your input must be a valid '{class_type}'! ").strip()
 
                         if class_type == "str" and comparison_target not in self.nan_values.keys():
                             print(f"Error: Invalid target value. Given value '{comparison_target}' is not in the dataset.")
@@ -488,7 +488,7 @@ class Dataset:
                         column_index = self.columns.index(target_feature)
                         column_type = self.column_types[column_index]
 
-                        comparison_target = input(f"Type in the target value to compare the column '{target_feature}' against. Your input must be a valid '{column_type}'! ")
+                        comparison_target = input(f"Type in the target value to compare the column '{target_feature}' against. Your input must be a valid '{column_type}'! ").strip()
 
                         if column_type == "float":
                             try:
