@@ -317,7 +317,6 @@ The activation functions and their derivatives are implemented taking `z` (node 
 
 
 #### Layer class
-> class Layer<br>
 > `num`: Layer number (starts at 0)<br>
 > `dim`: Number of nodes<br>
 > `type`: `0` (input), `1` (hidden), `2` (output)<br>
@@ -327,7 +326,6 @@ The activation functions and their derivatives are implemented taking `z` (node 
 > `l2_rate`: L2 Regularization rate<br>
 
 #### Network class
-> class Network<br>
 > `total_batches`: each batch, used for plotting<br>
 > `costs`: each batch cost, used for plotting and printing<br>
 > `crossvalidation_costs`: cost for holdout/k-folds average<br>
