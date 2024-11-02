@@ -24,7 +24,22 @@
   - [Running the script](#running-the-script)
     - [Setting up a comma-delimited dataset](#setting-up-a-comma-delimited-dataset)
     - [(Optional) Filtering a comma-delimited dataset](#optional-filtering-a-comma-delimited-dataset)
-- [How it works](#how-it-works)
+- [Implementation details](#implementation-details)
+    - [dataset.py](#datasetpy)
+    - [main.py](#mainpy)
+      - [Layer class](#layer-class)
+      - [Network class](#network-class)
+      - [Model class](#model-class)
+      - [Model loading and saving](#model-loading-and-saving)
+      - [JSON model format](#json-model-format)
+      - [Feedforward](#feedforward)
+      - [Backpropagation](#backpropagation)
+      - [Image loading](#image-loading)
+      - [Normalization](#normalization)
+      - [Dataset metrics evaluation](#dataset-metrics-evaluation)
+      - [Prediction](#prediction)
+      - [Misc](#misc)
+      - [Training](#training)
 - [Example model architectures](#example-model-architectures)
   - [Linear regression (`houses.csv`)](#linear-regression-housescsv-1)
   - [Logistic regression (`framingham.csv`)](#logistic-regression-framinghamcsv-1)
@@ -36,7 +51,7 @@
 - [Todo](#todo)
 
 # Summary
-A Python implementation from scratch of a neural network (using NumPy for matrix operations), made primarily for learning purposes.
+A Python implementation from scratch of a neural network (using NumPy for matrix operations), made primarily for learning purposes. It is nowhere near optimized, so expect bugs, redundant and duplicate code, slow performance, high memory usage, out of place/obsolete comments, and things of the sort.
 
 >You can find the example datasets, as well as the already labeled versions of the image datasets in the folder `datasets`.<br>
 You can also find the example architectures for the models in the example videos in the section [Example model architectures](#example-model-architectures).
@@ -266,8 +281,6 @@ Here you can filter out samples from the dataset by making comparisons using the
 2. Type the target number which will be compared against the given variable
 3. Type a valid comparison operator (one of `==`, `!=`, `<`, `<=`, `>=` or `>`)
 4. Type in `y` to keep filtering or `n` to continue the script.
-
-> When filtering multiple variables at once, the filtering in separate steps internally.
 ---
 
 Then, finally and similarly, you will be prompted whether to normalize the dataset.
@@ -284,12 +297,287 @@ Once finished, you can optionally make predictions and also optionally save the 
 
 ---
 
-# How it works
+# Implementation details
+
+### dataset.py
+The `dataset.py` script has the class implementation of `Dataset`, which is meant to hold information about a raw comma-delimited dataset, though not yet ready to work with in the main script, so some further processing is done in `main.py` after loading it.
+
+Whenever an instance of the class is created, the user will be prompted for a comma-delimited dataset file within the `datasets` folder, which gets parsed internally and has other setup related prompts for use with the main script, such as choosing independent and dependent variables for training (which ideally should be encasulapted within the `Model` class implementation, but my focus was on functionality first).
+
+It also contains the static function `Dataset.normalize_helper`, which is used to put features within the range [-1, 1] when normalizing. The function takes as arguments the `previous value`, `previous minimum feature value`, `previous maximum feature value`, `new minimum feature value`, and `new maximum feature value`.
+
+### main.py
+> The matrix multiplication order is left-to-right. (i.e. weights * input, where `input` is a row vector)
+
+The loss functions are executed on the predicted value and the observed value (correct label/dependent variable).
+
+Their derivatives are implemented the same way, except that they also take into account the (current batch) number of training samples for averaging.
+
+The activation functions and their derivatives are implemented taking `z` (node input) as the input, except for softmax, which also takes `z_l`, which is the input to all of the current layer's nodes, as well as its derivative.
+
+
+#### Layer class
+> class Layer<br>
+> `num`: Layer number (starts at 0)<br>
+> `dim`: Number of nodes<br>
+> `type`: `0` (input), `1` (hidden), `2` (output)<br>
+> `activation_function`: One of the implemented activation nfunctions<br>
+> `regularize`: Whether the layer uses regularization<br>
+> `l1_rate`: L1 Regularization rate<br>
+> `l2_rate`: L2 Regularization rate<br>
+
+#### Network class
+> class Network<br>
+> `total_batches`: each batch, used for plotting<br>
+> `costs`: each batch cost, used for plotting and printing<br>
+> `crossvalidation_costs`: cost for holdout/k-folds average<br>
+> `finished_training`: keeps track of whether the model has finished training<br>
+>
+#### Model class
 
 The class that defines a model is `Model`, and you can make as many instances as you want. An instance of this class stores information relevant to the model. However, since throughout this entire time I have only experimented with an individual model (outside of k-folds cross-validation), I have made a global variable `model` which defines the model to be defined/loaded_into, so you may encounter issues doing otherwise without making changes to the code.
 
+The class `Model` stores the model information and setup functions.
+
+It stores the layers, weights, loss function, independent and dependent variables, their types, normalization status, whether the model is an image model, among other things.
+
+You can instantiate as many models as you want. However, as it currently stands, unless you manually modify the code, the only instance of the `Model` class that will be relevant is instantiated as the variable `model`. (Copies of that model are also instantiated when using k-folds)
+
+Once instantiated, you will need to setup the model. This is explained in detail in the section [Setting up the model](#settig-up-the-model).
+
+#### Model loading and saving
+You can load a model by calling `load_model` with the model name (excluding the extension), which must be within the `models/` folder.
+
+You can save a model by calling `save_model` with the model instance and the model name (excluding the extension), which will be stored in the `models/` folder.
+
+#### JSON model format
+Example format (image models have an extra property, right after `is_image_model`, called `image_dim` which is a 2-element list of the width and height of images like [106, 80])
+```
+{
+    "normalized": `true`,
+    "is_image_model": `false`,
+    "layers": {
+        "0": {
+            "dimension": 1,
+            "activation": null,
+            "regularization": {
+                "regularize": false,
+                "l1_rate": 0,
+                "l2_rate": 0
+            }
+        },
+        "1": {
+            "dimension": 1,
+            "activation": "linear",
+            "regularization": {
+                "regularize": false,
+                "l1_rate": 0,
+                "l2_rate": 0
+            }
+        }
+    },
+    "loss": "mse",
+    "class_list": [
+        "price_brl"
+    ],
+    "feature_list": [
+        "area_m2"
+    ],
+    "feature_types": [
+        "float"
+    ],
+    "feature_min_maxes": [
+        [
+            53.0,
+            252.0
+        ]
+    ],
+    "sample_features_mean": [
+        -0.39734208231239004
+    ],
+    "sample_dependent_variables_mean": [
+        663169.2696930332
+    ],
+    "sample_features_variance": [
+        0.22446086612788888
+    ],
+    "sample_features_std": [
+        0.4737730111856192
+    ],
+    "weights": {
+        "0": [
+            [
+                660663.8870276996,
+                170975.81822938874
+            ]
+        ]
+    }
+}
+```
+
+#### Feedforward
+The `feedforward` function goes through the model starting at the given layer, with the given input, then returns the last layer's output.
+
+If `cache` is `True`, which is the case when training, each layer's outputs and inputs are stored (primarily for backpropagation) then reset for the next sample. Otherwise, which is the case when predicting, `cache` is `False`, and those values are not stored.
+
+1. If starting at layer 0, with `cache` being `True`, it stores the `input` in the list of inputs and outputs for the current sample.
+
+2. Multiplies the current layer's weights by the previous layer's outputs (the `input` to the function), and stores the output in `z_l`.
+
+3. The current layer's activation function is executed for each of the inputs in `z_l`, with the input to the node itself as the argument, and also the entire layer `z_l` in the case of `softmax`. The result is stored in the output matrix `a_l`.
+
+4. The function is recursively called with the current layer's output as the next layer's input and `layer_num` gets incremented by 1, until it reaches the last layer then returns the final output.
+
+> layer weight matrices `model.weights[-1][layer_num - 1]` are of dimension `m x (1 + n)`, where `m` is the number of nodes in the current layer and `n` is the number of nodes in the previous layer (+ 1 for the bias)<br><br>
+> layer inputs (`z_l`) are a matrix of dimension `m x 1`, where `m` is the number of nodes in the given layer<br><br>
+> layer outputs (`a_l`) are a matrix of dimension `n x 1`, where `n` is the number of nodes in the given layer
+
+#### Backpropagation
+
+The backpropagation function goes over the network backwards and calculates relevant values for the calculation of the partial derivatives for each weight variable of each layer, then returns that list.
+
+The following steps are looped through each node, then through each layer backwards, starting at the last layer.
+Most of the node indexing notation is ommitted for readability, but it is implemented in the code.
+
+First, the given node's `errors` are calculated.
+> The `error` of a particular node in layer `k` and index `i` is defined as `dC/dz_k[i]` (the derivative of the cost with respect to the input of the node `i` within the layer `k`)<br><br>
+> The weights indexing is 1 less than the layer indexing. (i.e. if at layer `1`, the weights that connect the input layer `0` to layer `1` are stored in `model.weights[0]`)
+
+When at the last layer, `dC/dz_k` is calculated, by separating the steps through the chain rule.
+
+1. `dC/da_k` is calculated (derivative of the cost wrt to the layer's output)
+	> The derivatives for the loss functions are individually implemented as the functions `binary_crossentropy_derivative`, `categorical_crossentropy_derivative`, and `mse_derivative`.
+
+2. The result gets added to the `node_error` variable.
+
+3. `da_k/dz_k` is calculated (derivative of the layer's activation function wrt to the layer's input)
+  > Similarly, the activation function derivatives are also individually implemented as the functions `linear_derivative`, `relu_derivative`, `sigmoid_derivative`, and `softmax_derivative`.
+
+4. The `node_error` variable gets multiplied by it, for the chain rule.
+
+
+If at a hidden layer, the `dC/da_k` calculation is replaced by the calculation of `dz_k/da_k-1` (derivative of the current layer's input wrt the previous layer's output), as the derivative with respect to the cost only needs to be calculated once.
+
+The value of `k` decreases for every layer in the loop (though in the script the variable that keeps track of the current layer increases).
+
+That is it for the `error` calculation of a given node in a given layer `k`.
+
+In order to get `dC/W_k` (partial derivatives of the cost wrt the weights in the given layer) after already calculating `dC/dz_k` we just need to multiply it by `dz_k/dW_k` (derivative of the layer's input wrt that layer's connection weights).
+
+`dz_k/dW_k` happens to be the previous layer's output nodes (`a_lm1[prev_node - 1, 0]`, the -1 accounts for the bias).
+
+Finally, the error of each node in the current layer must be multiplied by the previous layer's output to get the final partial derivatives for that layer/node.
+
+The process repeats for all hidden layers and their nodes until the input layer is reached, then the partials are returned.
+
+Note that I mentioned that the implementation of the chain rule is done separately for each function and derivative, but this is not the case for the `softmax` function combined with `loss_categorical_crossentropy` (multi-class classification model, such as MNIST), as when working out the math certain variables cancel out, but since in the script it's done in separate steps, one of the derivatives returns `0` and since the chain rule is just multiplication, all partials and errors become 0.
+
+For this reason, when the combination is `softmax` as the last layer's activation function and `loss_categorical_crossentropy` for the loss function, the node `error` calculation is implemented in a single line: `node_error = (a_l[node, 0] - observed[0, node]) / n_training_samples`.
+
+The error itself is the layer's output `a_l` minus the real `observed` value for the given input sample. The division by `n_training_samples` is there to average the partial derivatives over the batch size. This should be done by the loss function derivative function when at the last layer, but since for this specific case it was simplified to one step, this needs to be done directly.
+
+#### Image loading
+
+`Pillow` is used for image loading whenever using an image model. You can get the pixel matrix of an image by calling `get_image_pixel_matrix`, and passing the absolute or relative folder path, and the image filename. If the `model` argument to this function is not `None` and it doesn't have a previously set `image_bit_depth` variable, the function will set this member variable to be whatever the bit depth for this image is.
+
+The function `load_image_dataset` loads the image dataset from the given `folder`. This folder must have a `labels.txt` file with unique filenames and correct formatting, as well as the respective images.
+
+The images are all assumed to have the same dimension (not necessary to be square) and the same bit depth.
+
+This function reads and parses all images and labels into matrices, retrieves other model relevant information (also allows you to name each image class) if called with a given model as an argument alongside `unique_dataset = True`, and stores them in the local variables `samples`, `labels`, `feature_list`, `feature_types`, `class_list`, `image_dim`, `image_bit_depth`, which the function returns.
+
+If you are only interested in loading the dataset irrespective of the model, which is the case as long as the model instance already contains the relevant information (i.e. image bit depth, image dimension, pixel count and classes).
+
+You can plot an image from a sample matrix retrieved by calling `get_image_pixel_matrix` with the function `plot_image_from_sample`, by passing the model as argument and the sample matrix.
+
+#### Normalization
+
+When ran with `update_min_maxes` as True, the function `mean_n_variance_normalize` goes through the given dataset and stores the minimum and maximum values for each of the features. This is what `feature_min_maxes` is used for. It is a 2 dimensional array where the first column is the feature index, and in the second column the minimum (0) and maximum (1) value for that feature.
+
+If the model is an image model, as of right now, the minimum and maximum value for each feature is hardcoded to, respectively, `0` and `255`.
+
+The function `new_normalize` uses the `feature_min_maxes` and the `Dataset.normalize_helper` function in order to normalize the samples to the range [-1 ,1].
+
+If ran with `update_min_maxes` as False (which is the case when normalization is enabled) the dataset will be mean normalized (subtracts the mean of the given feature for each feature) and standardized (divides by the standard deviation of the given feature for each feature). (Even then it is still called with `update_min_maxes = False` beforehand, in order to store the minimum and maximum values for the normalization), 
+
+> If normalizing, the dataset is first normalized to the range [-1, 1], then the mean and standard deviation are measured
+
+#### Dataset metrics evaluation
+
+The function `measure_model_on_dataset` can be called with the relevant data after loading a dataset and a model, in order to measure the performance of the model on that dataset. The resulting measures are stored in the `model_metrics`, `micro_metrics`, `macro_metrics`, and `class_metrics` dictionaries and list that are passed as arguments.
+
+This function gets called `k` times for the `k` models if using `k-folds` cross-validation, for every batch.
+It is called once when training finishes if/with a test set.
+The total cost is always measured.
+For regression models, `r^2` is measured
+For classification models, `accuracy`, `recall`, `precision`, and `f1-score` are measured.
+
+Once a model has been measured for some dataset, you can call `print_model_metrics` to print the relevant metrics, with the `model_metrics`, `micro_metrics`, `macro_metrics`, and `class_metrics` that hold the metrics as arguments to the function.
+
+#### Prediction
+
+The `predict_prompt` function handles the prediction of values for a model. It initializes an input matrix of the same dimension as the input layer and prepends a 1 to account for the bias.
+If the model used a regular comma-delimited dataset, then you will be prompted for the inputs for each feature.
+If the model used an image dataset, it will load an image given as input by the user within the `images/predict` folder for prediction.
+Once the input is properly loaded, if the model was normalized the input also gets normalized, by normalizing the features to [-1, 1], then subtracting the mean and dividing by the standard deviation that were measured for the training set after also normalizing the training set to [-1, 1].
+Finally, it performs forward propagation on the model with this matrix as the input, then prints the result to the console. If the model is an image model the image is also plotted.
+
+The function `nn.predict` runs forward propagation, ignoring first layer.
+
+#### Misc
+
+The function `randomize_dataset` shuffles the dataset by swapping column vectors at random from the given samples and dependent_values matrices.
+
+#### Training
+The function `nn.train` starts the actual training process. It initializes some variables which will be filled during training, then loops through the number of training steps and calls the nn.step function. Whenever a step finishes, the current step, training cost, and possibly cross-validation cost are printed to the console. Once all steps are done, the variable `finished_training` gets set to `True`.
+
+Takes as arguments the training parameters, the training samples, and the model to be trained (defaults to `None` if performing `k-folds` cross-validation)
+Initializes empty lists for the `total_batches`, `costs`, `crossvalidation_costs`, `models_model_metrics`, `models_micro_metrics`, `models_macro_metrics`, `models_class_metrics`, as those are filled during training.
+
+The `step` function performs the training step. The behavior when `k-folds` is slightly different from a regular model, as multiple models are measured at once.
+
+For a regular model, this is the process for each sample, as it goes through all samples in the training sample:
+
+1. The model's `layers_a` and `layers_z` member variables are initialized to empty lists, as this information is necessary for backpropagation and is different for each sample.
+2. Forward propagation is performed on the model, starting from the input layer, with the current training sample.
+3. The sample loss is then calculated based on the model, the output of the forward propagation, and the observed values (correct dependent values/labels).
+4. The sample loss is added to the `average_cost` variable, which will later be averaged for the total batch loss.
+5. Backpropagation is performed and the partial derivatives are stored in the `sample_partials`variable, which gets appended to the `batch_partials[0]` (The `0` index here stands for 0th model, as for `k-folds` there is more than one model) variable. This will also get averaged for the total batch loss.
+6. Whenever the number of batch samples is reached:
+	1. The `total_batches` variable which is used for plotting gets appended with the number of the current batch
+	2. The batch cost gets averaged over the number of samples.
+	3. The batch cost gets appended to the `costs` variable, which holds the cost of each batch and is used for plotting and printing the cost to the console (as of right now, the last batch's average cost is always the one printed and plotted).
+	4. (Optional) If enabled, the model gets evaluated on the `hold-out` set.
+	5. (Optional) If enabled, and the desired number of batches, set through the variable `plot_update_every_n_batches` have been iterated, the plot is drawn
+	6. The batch partials get averaged over the number of samples, and the list gets cleared for the next batch.
+	7. Gradient descent is performed on the model, with the given partial derivatives, learning rate, and number of samples processed in the current batch
+
+The behavior for `k-folds` is similar, except that for each sample the process also loops through each of the `k` models.
+
+The function `sample_loss` calculates the sample loss for a given model, prediction, and observation. It basically goes through each output node and calls the model's loss function with the prediction and observation. The total sample loss is the accumulation of each output node's individual loss. Regularization is then accounted for if enabled.
+
+The `gradient_descent` function updates the model's weights given the partial derivatives, learning rate, and number of samples in the current batch. It also takes into account regularization if enabled.
+
+Though both terms are somewhat interchangeable, I mostly reserved the `Network` class to handle the training, predicting, plotting, and sometimes performance measuring of arbitrary models, while the `Model` instance holds information pertaining to the model architecture, its weights, and information regarding the dataset it gets trained on.
+
+The model architecture gets defined beforehand, as explained in further detail in the section [Setting up a model](#setting-up-a-model)
+
+When running the script, a few prompts will ask you for your preferences on certain settings and other things.
+
+The training set is always present, the test and hold-out sets are optional. In the case of k-folds, the entire training set gets split into `k` models, where each of the `k` models have their own subsets of the training set as their training set and test set.
+
+The training, test, and hold-out sets are all matrices of dimension `(n + 1) x m`, where `n` is the number of features the dataset has plus a prepended 1 at the beginning, which accounts for the bias weight, and `m` is the number of samples.
+
+As for the dependent/observed values, they are matrices of dimension `m x n`, where `m` is the number of classes/dependent variables, and `n` is the number of samples. Depending on the context, it may be internally transposed in certain functions or sections of the code, but generally it is `m x n` (i.e. in the case of `dependent_values`).
+
+The dataset is loaded by the script `dataset.py`, although some other things are done in `main.py`. It just parses through a comma-delimited file, separates the features, and stores relevant information within its member variables.
+
+Whenever running k-folds cross-validation, the models are not saved and you are not able to predict anything at the end of training, and this is by design as it is mostly used as a form of evaluating the model performance. Ideally you should still be able to do these things since there's no real downside to allowing them, but combining this with the time spent implementing this I decided to leave it as is, for now.
+
+The function `nn.reset_training_info` resets the member variables which keep track of the training progress, can be useful for retraining a model. As it stands the script doesn't use this, but you could add it to the script as you please. This could be useful for you if you want to train multiple models multiple times.
+
 # Example model architectures
-> Below are models that I used for testing and experimenting that are seemingly decently accurate
+Below are models that I used for testing and experimenting that are seemingly decently accurate
 ## Linear regression (`houses.csv`)
 - Independent variable: `area_m2` (Area in m^2 of a house)
 - Dependent variable: `price_brl` (Price in Brazilian reais)
@@ -446,6 +734,8 @@ The class that defines a model is `Model`, and you can make as many instances as
 - The `model` class members `sample_features_mean`, `sample_features_std`, `sample_features_variance`, are measured over the training samples (after normalizing the input to the range [-1, 1] but before mean normalizing and standardizing, if normalization was enabled). Meanwhile, the non `model` class members, such as `training_features_mean` and `test_features_mean`, are the measurements after the input is normalized (if that is the case, otherwise `model.sample_features_mean` is the same as `training_features_mean`, for example). That is because whenever the input needs to be re-normalized, such as in the case of predicting an arbitrary user input once the model is trained, you need to know the `mean` and `std` before mean normalizing and standardizing but after normalizing to [-1, 1], as well as the minimum and maximum values of each input feature in order to normalize it to [-1 ,1], which is what the variable `model.feature_min_maxes` is used for. These are also used for performance measurements and reversing the normalization.
 
 - I could not make a model that performs well predicting different car brands of the same color (RGB), using a similar architecture to the model that predicts car colors. I don't know the exact reason for this, although it is evidently a more complex task than the other examples. Possibly solvable with convolutional layers?
+
+- Note: Regularization has not been extensively tested.
 # Todo
 
 - Implement the same behavior of optionally storing images in a separate folder as the `test` folder for the `holdout` folder
@@ -497,5 +787,3 @@ The class that defines a model is `Model`, and you can make as many instances as
 - Prompt user whether to calculate and store micro statistics, macro statistics and/or model statistics? Worried that prompt would be too cumbersome as it's already bloated with settings, and this can already be done manually, though not tested, by passing `model_metrics`, `micro_metrics`, `macro_metrics` and/or `class_metrics` as `None`, instead of the 3 former being a dictionary and the latter a list. This would be particularly useful to increase speed and decrease memory usage for models trained with cross-validation.
 
 - Let user input learning rate, regularization rate and the type (L1 or L2), batch size, and the frequency at which the plot (if enabled) is updated? Also worried about too many settings.
-
-- Upload already labeled versions of the MNIST and cars datasets

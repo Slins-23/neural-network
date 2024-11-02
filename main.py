@@ -287,7 +287,7 @@ class Network:
                 # dzk_dak-1 / ... / dz1_da0
                 else:
                     for node_next in range(model.layers_in_order[layer + 1].dim):
-                        next_layer_node_error = layer_errors[-1][node_next, 0]
+                        next_layer_node_error = layer_errors[layer - 1][node_next, 0]
 
                         # 1 + node in order to skip the bias node
                         # Error is accumulated and weighted over the next layer nodes that this node in the current layer connects to
@@ -515,11 +515,11 @@ class Network:
 
     def sample_loss(self, model, predicted_output, observed_output):
         sample_loss = 0
-        for output_neuron in range(predicted_output.shape[0]):
+        for output_node in range(predicted_output.shape[0]):
             
-            predicted_value = predicted_output[output_neuron, 0]
+            predicted_value = predicted_output[output_node, 0]
 
-            observed_value = observed_output[0, output_neuron]
+            observed_value = observed_output[0, output_node]
             sample_loss += model.loss_function(predicted_value, observed_value)
 
         for layer in model.layers_in_order:
@@ -915,6 +915,9 @@ class Network:
         # Prepend 1s here to a temporary copy variable instead of the dataset to decrease coupling (will double the memory requirements)
 
         self.total_batches = []
+        self.costs = []
+        self.crossvalidation_costs = []
+        self.finished_training = False
 
         if use_kfolds:
             self.models_model_metrics = [[] for _ in range(crossvalidation_folds)]
@@ -973,139 +976,12 @@ class Network:
     def predict(self, model, input):
         return self.feedforward(model, 1, input, False)
     
-    # Ignoring/skipping some iterations here because it's too slow in real-time
-    def plot(self, i):
-        step_size = round(0.1 * len(self.total_batches))
-        print(f"Step size: {step_size}")
-        print(f"XS: {xs}")
-        print(f"YS: {cost_ys}")
-        total_batches = []
-        costs = []
-
-        if len(xs) != 0:
-            if self.total_batches[-1] - xs[-1] >= step_size:
-                xs.append(self.total_batches[-1])
-                cost_ys.append(self.costs[-1])
-        elif len(xs) == 0 and len(self.total_batches) > 0:
-            xs.append(self.total_batches[0])
-            cost_ys.append(self.costs[0])
-        else:
-            return
-
-        if not use_kfolds and not use_holdout:
-            plot_lines[0][0].set_data(xs, cost_ys)
-            plot_lines[1][0].set_data(xs, cost_ys)
-
-            axes[0][0].autoscale_view(True, True)
-            axes[0][0].relim()
-
-            axes[1][0].autoscale_view(True, True)
-            axes[1][0].relim()
-
-        '''
-        if use_holdout:
-            crossvalidation_costs = [[]]
-        elif use_kfolds:
-            crossvalidation_costs = [[] for _ in range(crossvalidation_folds)]
-        '''
-
-        '''
-        if store_micro_metrics or store_macro_metrics:
-            if not use_kfolds and model.is_classification():
-                accuracies = [[]]
-                precisions = [[]]
-                recalls = [[]]
-                f1scores = [[]]
-            elif not use_kfolds and model.is_regression():
-                rs = [[]]
-                r_squareds = [[]]
-                rmses = [[]]
-            elif use_kfolds and model.is_classification():
-                accuracies = [[] for _ in range(crossvalidation_folds)]
-                precisions = [[] for _ in range(crossvalidation_folds)]
-                recalls = [[] for _ in range(crossvalidation_folds)]
-                f1scores = [[] for _ in range(crossvalidation_folds)]
-            elif use_kfolds and model.is_regression():
-                rs = [[] for _ in range(crossvalidation_folds)]
-                r_squareds = [[] for _ in range(crossvalidation_folds)]
-                rmses = [[] for _ in range(crossvalidation_folds)]
-        '''
-
-        '''
-        for idx in range(0, len(self.total_batches), step_size):
-            total_batches.append(self.total_batches[idx])
-            costs.append(self.costs[idx])
-
-            if use_holdout:
-                crossvalidation_costs[0].append(self.models_model_metrics[0][idx]["total_cost"])
-            elif use_kfolds:
-                for fold, current_model in enumerate(crossvalidation_models):
-                    crossvalidation_costs[fold].append(self.models_model_metrics[fold][idx]["total_cost"])
-
-
-        '''
-
-        '''
-        axes[0][0].cla()
-        axes[1][0].cla()
-
-        axes[0][0].set_yscale("linear")
-        axes[1][0].set_yscale("log")
-
-        if not use_kfolds and not use_holdout:
-            try:
-                axes[0][0].plot(total_batches, costs, color='blue')
-                axes[1][0].sharex(axes[0][0])
-                axes[1][0].plot(total_batches, costs, color='blue')      
-            except:
-                return
-        
-        if use_holdout:
-            axes[0][1].cla()
-            axes[1][1].cla()
-            axes[0][1].sharex(axes[0][0])
-            axes[1][1].sharex(axes[1][1])
-            axes[1][1].set_xlabel("Batch")
-            axes[0][1].set_ylabel(f"Cross-validation cost (hold-out) (linear scale)")
-            axes[1][1].set_ylabel(f"Cross-validation cost (hold-out) (log scale)")
-            axes[1][1].set_yscale("log")
-
-            try:
-                axes[0][1].plot(total_batches, crossvalidation_costs[0], color='red')
-                axes[1][1].plot(total_batches, crossvalidation_costs[0], color='red')
-            except:
-                return
-            
-        elif use_kfolds:
-            axes[0][1].cla()
-            axes[1][1].cla()
-            axes[0][1].sharex(axes[0][0])
-            axes[1][1].sharex(axes[1][1])
-            axes[1][1].set_xlabel("Batch")
-            axes[0][1].set_ylabel(f"Cross-validation cost ({crossvalidation_folds}-folds) (linear scale)")
-            axes[1][1].set_ylabel(f"Cross-validation cost ({crossvalidation_folds}-folds) (log scale)")
-            axes[1][1].set_yscale("log")
-
-            for fold, current_model in enumerate(crossvalidation_models):
-                try:
-                    axes[0][1].plot(total_batches, crossvalidation_costs[fold], color=costs_plotting_colors[fold], label=f"Fold {fold + 1}")
-                    axes[1][1].plot(total_batches, crossvalidation_costs[fold], color=costs_plotting_colors[fold], label=f"Fold {fold + 1}")
-                except:
-                    return
-        '''
-
-        if self.finished_training:
-            self.ani.event_source.stop()
-            print("Stopped animating the graph. Close it in order to predict values.")
-            return
-
 class Model:
     ready_to_use = False
 
     layers_a = []
     layers_z = []
-    
-    activation_functions = []
+
     loss_function = None
 
                     #               HIDDEN             HIDDEN            OUTPUT              INPUT
