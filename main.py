@@ -2349,7 +2349,7 @@ def color_is_similar(color_a, color_b):
     else:
         return True
 
-# Returns the pixel array for images (if black and white is True, return 0 or 1 for each pixel, otherwise return RGB array)
+# Returns the pixel array for images
 def get_image_pixel_matrix(folder, image, model=None):
     img = Image.open(folder + image)
     pixels = list(img.getdata())

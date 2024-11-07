@@ -12,6 +12,7 @@
   - [Training a model (from scratch or by retraining an already existing model):](#training-a-model-from-scratch-or-by-retraining-an-already-existing-model)
   - [Loading a model for prediction only:](#loading-a-model-for-prediction-only)
   - [Defining a model from scratch](#defining-a-model-from-scratch)
+      - [Layer class](#layer-class)
   - [Activation functions](#activation-functions)
   - [Loss functions](#loss-functions)
   - [Model setup](#model-setup)
@@ -27,7 +28,6 @@
 - [Implementation details](#implementation-details)
     - [dataset.py](#datasetpy)
     - [main.py](#mainpy)
-      - [Layer class](#layer-class)
       - [Network class](#network-class)
       - [Model class](#model-class)
       - [Model loading and saving](#model-loading-and-saving)
@@ -38,14 +38,13 @@
       - [Normalization](#normalization)
       - [Dataset metrics evaluation](#dataset-metrics-evaluation)
       - [Prediction](#prediction)
-      - [Misc](#misc)
       - [Training](#training)
 - [Example model architectures](#example-model-architectures)
   - [Linear regression (`houses.csv`)](#linear-regression-housescsv-1)
   - [Logistic regression (`framingham.csv`)](#logistic-regression-framinghamcsv-1)
   - [Multi-label classification (`framingham.csv`)](#multi-label-classification-framinghamcsv)
-  - [Multi-class classification (`mnist.rar`)](#multi-class-classification-mnistrar)
-  - [Multi-class classification (RGB) (`cars.rar`)](#multi-class-classification-rgb-carsrar-1)
+  - [Multi-class classification (`mnist_labeled.rar`/`mnist.rar`)](#multi-class-classification-mnist_labeledrarmnistrar)
+  - [Multi-class classification (RGB) (`cars_labeled.rar`/`cars.rar`)](#multi-class-classification-rgb-cars_labeledrarcarsrar)
 - [Features](#features)
 - [Notes](#notes)
 - [Todo](#todo)
@@ -126,42 +125,31 @@ https://github.com/user-attachments/assets/5b47e22f-8db8-405c-8dc3-d6ec64956d0d
 
 # How to use
 
-There are two types of datasets that are currently accepted:
-
-1. Comma-delimited '`,`' files where each variable is in a separate column and each row is an individual sample
-2. Images of the same dimension, no need to be square (i.e. 28x28, 106x80, etc.)
-
----
-
 ## Training a model (from scratch or by retraining an already existing model):
-1. Setup the model
-   > *Define a model architecture in `main.py` or load a `.json` config file within the `models` folder*
-2. Adjust the hyperparameters
-   > - Learning rate: `lr`
-   > - Batch size: `batch_size`
-   > - Training steps: `steps`
-   > - **(Optional)** Plot update interval: `plot_update_every_n_batches`
-3. Run the script
-4. Adjust the settings by following the prompts
-5. Wait for the training to finish
-6. **(Optional)** Predict and/or evaluate metrics on final model
-7. **(Optional)** Save the model
-
+1. Setup the model - [Model setup](#model-setup)
+2. Adjust the hyperparameters - [Setting up the hyperparameters](#setting-up-the-hyperparameters)
+3. Run the script `main.py` and adjust the settings according to the prompts - [Running the script](#running-the-script)
+4. Wait for the training to finish
+5. **(Optional)** Predict and/or evaluate metrics on final model - [Prediction](#prediction)
+6. **(Optional)** Save the model -  [Model loading and saving](#model-loading-and-saving)
 
 ## Loading a model for prediction only:
 1. Load the model (must be within the folder `models`)
 2. Type `1` for prediction only when prompted
 
 ## Defining a model from scratch
-  You can setup the architecture right below the line `if not loaded_model:` and before `model.setup_done()`, by running the relevant setup functions of the `model` variable.
+You can setup the architecture right below the line `if not loaded_model:` and before `model.setup_done()`, by running the relevant setup functions of the `model` variable.
 
-  A `Layer` instance defines a layer.
-  A layer has:
-  > `num`: Starts at `0` and identifies the position of the layer within the network. You don't need to add layers in ascending order, as they will get sorted based on this variable later when `setup_done` is called.<br><br>
-  > `dim`: Number of nodes within the layer.<br>
-  > `type`: `0` (input layer), `1` (hidden layer), or `2` (output layer).<br>
-  > **(Optional)** `l1_rate`: L1 regularization rate<br>
-  > **(Optional)** `l2_rate`: L2 regularization rate
+A `Layer` instance defines a layer.
+#### Layer class
+  > class Layer<br>
+  > `num`: Layer number (starts at `0`)<br>
+  > `dim`: Number of nodes<br>
+  > `type`: `0` (input), `1` (hidden), `2` (output)<br>
+  > `activation_function`: One of the implemented activation nfunctions<br>
+  > `regularize`: Whether the layer uses regularization<br>
+  > `l1_rate`: L1 Regularization rate<br>
+  > `l2_rate`: L2 Regularization rate<br>
 
 ## Activation functions
   > `linear`: Linear<br>
@@ -174,57 +162,62 @@ There are two types of datasets that are currently accepted:
   > `loss_binary_crossentropy`: Binary cross-entropy<br>
   > `loss_categorical_crossentropy`: Categorical cross-entropy
 
-  The model setup part is pretty intuitive and self-explanatory:
-
 ## Model setup
-1. Add however many layers you want by calling  `model.add_layer(num, dim, type)`<br><br>
-2. Each layer that is not the input layer needs an activation function, which can be set by calling `model.set_activation_function(num, activation_function)`<br><br>
+
+> There needs to be exactly 1 input layer and 1 output layer, and they can only be added once.<br>
+> The output layer and every hidden layer each need their own activation function<br>
+> The model needs a loss function<br>
+> `activation_function`: One of the activation functions at [Activation functions](#activation-functions)<br>
+> `loss_function`: One of the loss functions at [Loss functions](#loss-functions)<br>
+
+1. Add however many layers you want by calling `model.add_layer(num, dim, type)`<br><br>
+2. An activation function can be set by calling `model.set_activation_function(num, activation_function)`<br><br>
 3. Every model needs a loss function, which can be set by calling `model.set_loss_function(loss_function)`<br><br>
 4. Lastly, you need to call `model.setup_done(is_loaded_model=False)` to ensure that the model architecture is valid (i.e. if there are no missing layers, the layer types are correct, the layers also get sorted by their `num` at this point, etc.)<br><br>
 
 ## Setting up the hyperparameters
   There are six hyperparameters:
-  > Learning rate = `lr`<br><br>
-  > Batch size (if this variable is greater than the number of training samples, it defaults to the number of training samples) = `batch_size`<br><br>
-  > Steps = `steps`<br><br>
-  > **(Optional)** Interval (number of batches) in which the plot (if enabled) should be updated = `plot_update_every_n_batches`<br><br>
-  > **(Optional)** L1 regularization & L2 regularization rates = `model.set_regularization(num, l1_rate, l2_rate)`<br><br>
+  > Learning rate: `lr`<br><br>
+  > Batch size: `batch_size`<br><br>
+  > Steps: `steps`<br><br>
+  > **(Optional)** Plot update interval (if enabled, and in number of batches): `plot_update_every_n_batches`<br><br>
+  > **(Optional)** L1 & L2 regularization rates: `model.set_regularization(num, l1_rate, l2_rate)`<br><br>
 
 ## Dataset setup
 ### Comma-delimited '`,`' dataset
-The dataset must be within the `datasets` folder, and be comma-separated (i.e. each variable is separated by a comma '`,`' and each sample is separated y a newline).
+The dataset must be within the `datasets` folder, and be comma-separated (i.e. each variable is separated by a comma '`,`' and each sample is separated y a `newline`/`\n`).
 You can also optionally filter the dataset at runtime.
 
-The dataset loading/filtering process is further explained in the sections [Setting up a comma-delimited dataset](#setting-up-a-comma-delimited-dataset) and [(Optional) Filtering a comma-delimited dataset](#filtering-a-comma-delimited-dataset).
+The dataset loading/filtering process is further explained in the sections [Setting up a comma-delimited dataset](#setting-up-a-comma-delimited-dataset) and [(Optional) Filtering a comma-delimited dataset](#optional-filtering-a-comma-delimited-dataset).
 
->If enabled, the test and/or hold-out set(s) will be sampled from the dataset based on the user given percentage.
+> If enabled, the `test` and/or `hold-out` set(s) will be sampled from the dataset based on the user given percentage.
 ### Image dataset
 >**I have only tested 3 types of images so far - RGB, RGBA, and byte sized.**
 
 > **If you are not on windows and need to resize images and/or write labels, you can simply execute the Python files directly (i.e. `python resize.py` and/or `python write_labels.py`). This is what the `.bat` file does.**
 
 For an image dataset you need 3 things:
->1. Images for the training set, of the same dimension (do not need to be square)
->2. Unique labels for each of these images in a file called `labels.txt`
->3. Place all of the images, as well as the respective `labels.txt` in the `images/train` folder
+> 1. Images for the training set, of the same dimension (do not need to be square)
+> 2. Unique labels for each of these images in a file called `labels.txt`
+> 3. Place all of the images, as well as the respective `labels.txt`, in the `images/train` folder
 
-As for the **(optional)** test set, you can either choose a percentage of the images within the `train` folder as the test set, or store them separately in the `images/test` folder. If you choose the latter, the images in `images/test` also need their respective `labels.txt` file.
+As for the **(optional)** test set, you can either choose a percentage of the images within the `train` folder as the `test` set, or store them separately in the `images/test` folder. If you choose the latter, the images in `images/test` also need their respective `labels.txt` file.
 
 #### Label images
 
 > A video example on how to automatically label images is shown in [`Labeling images`](#labeling-images)
 
-The `labels.txt` file is in the format `filename,class`, where `filename` is the image filename, `class` is an integer in the range [0, k], where `k` is the number of classes in the model, and each new line represents a separate image.
+The `labels.txt` file is in the format `filename,class`, where `filename` is the image filename, `class` is an integer in the range `[0, k]`, where `k` is the number of classes in the model, and each new line represents a separate image.
 
 You can manually fill in the `labels.txt` file or you can also automatically generate it.
 
-The latter requires that you are able to separate all class images into their individual folders. (i.e. if you're using MNIST, you would separate all images of a 0 in a folder called `0`, of a 1 in a folder called `1`, and so on...)
+The latter requires that you are able to separate all class images into their individual folders. (i.e. if you're using MNIST, you would separate all images of a `0` in a folder called `0`, of a `1` in a folder called `1`, and so on...)
 
 For automatic labeling:
 1. Separate each image pertaining to an individual class into its own folder
-2. Give each folder an unique integer as the name, where the integer ranges from 0 to the number of classes (i.e. 0-9 for MNIST)
-3. Copy and paste the file(s) `utils/write_labels.py` (and `utils/write_labels.bat` if on Windows) and paste on each of these class folders
-4. If on Windows, run `write_labels.bat`, otherwise directly execute `python write_labels.py`, this creates a `labels.txt` file for each folder
+2. Give each folder an unique integer as the name, where the integer ranges from `0` to the number of classes (i.e. 0-9 for MNIST)
+3. Copy and paste the file(s) `utils/write_labels.py` (and `utils/write_labels.bat` if on Windows), and paste on each of these class folders
+4. If on Windows, run `write_labels.bat` on each folder, otherwise directly execute `python write_labels.py`. This creates a `labels.txt` file for each folder
 5. Copy all of those images into the `images/train` folder
 6. Concatenate the contents of each `labels.txt` into a new `labels.txt` that also goes into `images/train`
 
@@ -235,7 +228,7 @@ For automatic labeling:
 1. Place the files `utils/resize.py` and `utils/resize.bat` in the same folder as the images you want to resize
 2. Open `resize.py` with a text editor and change the variables `WIDTH` and `HEIGHT` to the width and height you're targeting for all the images
 3. Execute the file `resize.bat`. (Or directly call `python resize.py` if not on Windows)
-4. A new folder called `resized` will be created with all of the resize images inside of it.
+4. A new folder called `resized` will be created with all of the resized images inside of it.
 
 ## Running the script
 Once everything is setup, you can run `main.py`.
@@ -254,9 +247,11 @@ You will be asked whether to plot any model metrics (i.e. training cost, `r^2`, 
 
 Similarly, you will be prompted whether to perform cross-validation (hold-out (`0`) or k-folds (`1`)), whether to use a test set, and whether to shuffle the dataset (all of it, including the subsets).
 
+> The function `randomize_dataset` shuffles the dataset by swapping column vectors at random from the given `samples` and `dependent_values` matrices, before they are (optionally) partitioned into a `test` set or `hold-out` set.
+
 Now, if you chose to train the model, you will then be prompted about the dataset.
 
-If it is an image model you will be prompted whether you want to give names to the classes, as by default they're integers in the range [0, c], where `c` is the number of classes in the last layer of the model.
+If it is an image model you will be prompted whether you want to give names to the classes, as by default they're integers in the range `[0, c]`, where `c` is the number of classes in the last layer of the model.
 
 If it is a dataset that is comma-delimited, you will need to choose the independent and dependent variables, as can be seen in the section [Setting up a comma-delimited dataset](#setting-up-a-comma-delimited-dataset) below.
 
@@ -264,9 +259,9 @@ If it is a dataset that is comma-delimited, you will need to choose the independ
 ### Setting up a comma-delimited dataset
 > Each possible feature/class is a separate column, separated by a comma.
 1. Input the dataset filename, including the extension (must be within the `datasets` folder)
- 2. Type in `0` in order to select by column/feature name, or `1` in order to select by the number (index)
+2. Type in `0` in order to select by column/feature name, or `1` in order to select by the number (column index)
 3. Type in the feature identifier by whichever mean you chose to
-4. Type in `i` in order to select the variale as independent (used to predict) or `d` as dependent
+4. Type in `i` in order to select the variale as independent (used to predict) or `d` as dependent (to be predicted)
 5. Now you need to choose whether to keep choosing independent and/or dependent variables or continue running the script. Type in `y` to choose another feature/class or `n` in order to continue the script.<br>
     - > You can keep doing this as many times as you need. Each model needs at least one independent variable and one dependent variable. 
 6. Type in `y` in order to filter the dataset or `n` otherwise. More information on dataset filtering available in the below section [(Optional) Filtering a comma-delimited dataset](#optional-filtering-a-comma-delimited-dataset)
@@ -274,12 +269,12 @@ If it is a dataset that is comma-delimited, you will need to choose the independ
 ### (Optional) Filtering a comma-delimited dataset
 > The following are valid comparison operators: `==`, `!=`, `<`, `<=`, `>=`, `>`
 
-Here you can filter out samples from the dataset by making comparisons using the comparison operators above. This works for both independent and dependent variables. You can also do it multiple times. The filtered variables do not need to be the independent or dependent variables, as long as they are in the dataset.
+Here you can filter out samples from the dataset by making comparisons using the comparison operators listed above. This works for both independent and dependent variables. You can also do it multiple times. The filtered variables do not need to be the independent or dependent variables, as long as they are in the dataset.
 
-1. Select which variable(s) to filter, by typing in the variable name, with no whitespace and separated by commas if filtering more than one variable at once.
+1. Select which variable(s) to filter, by typing in the variable(s) name, while separated by commas if filtering more than one variable at once.
    > i.e. 'area_m2', 'area_m2,price_brl', 'lat,lon', etc...
 2. Type the target number which will be compared against the given variable
-3. Type a valid comparison operator (one of `==`, `!=`, `<`, `<=`, `>=` or `>`)
+3. Type in a valid comparison operator (one of `==`, `!=`, `<`, `<=`, `>=` or `>`)
 4. Type in `y` to keep filtering or `n` to continue the script.
 ---
 
@@ -302,9 +297,9 @@ Once finished, you can optionally make predictions and also optionally save the 
 ### dataset.py
 The `dataset.py` script has the class implementation of `Dataset`, which is meant to hold information about a raw comma-delimited dataset, though not yet ready to work with in the main script, so some further processing is done in `main.py` after loading it.
 
-Whenever an instance of the class is created, the user will be prompted for a comma-delimited dataset file within the `datasets` folder, which gets parsed internally and has other setup related prompts for use with the main script, such as choosing independent and dependent variables for training (which ideally should be encasulapted within the `Model` class implementation, but my focus was on functionality first).
+Whenever an instance of the class is created, the user will be prompted for a comma-delimited dataset file within the `datasets` folder, which gets parsed internally and has other setup related prompts for use with the main script, such as choosing independent and dependent variables for training (which ideally should be encasulapted within the `Model` class implementation, but my focus was on functionality first). This setup is further explained in the section [Setting up a comma-delimited dataset](#setting-up-a-comma-delimited-dataset).
 
-It also contains the static function `Dataset.normalize_helper`, which is used to put features within the range [-1, 1] when normalizing. The function takes as arguments the `previous value`, `previous minimum feature value`, `previous maximum feature value`, `new minimum feature value`, and `new maximum feature value`.
+It also contains the static function `Dataset.normalize_helper`, which is used to put features within the range `[-1, 1]` when normalizing. The function takes as arguments the `previous value`, `previous minimum feature value`, `previous maximum feature value`, `new minimum feature value`, and `new maximum feature value`.
 
 ### main.py
 > The matrix multiplication order is left-to-right. (i.e. weights * input, where `input` is a row vector)
@@ -315,33 +310,22 @@ Their derivatives are implemented the same way, except that they also take into 
 
 The activation functions and their derivatives are implemented taking `z` (node input) as the input, except for softmax, which also takes `z_l`, which is the input to all of the current layer's nodes, as well as its derivative.
 
-
-#### Layer class
-> `num`: Layer number (starts at 0)<br>
-> `dim`: Number of nodes<br>
-> `type`: `0` (input), `1` (hidden), `2` (output)<br>
-> `activation_function`: One of the implemented activation nfunctions<br>
-> `regularize`: Whether the layer uses regularization<br>
-> `l1_rate`: L1 Regularization rate<br>
-> `l2_rate`: L2 Regularization rate<br>
-
 #### Network class
+> class Network<br>
 > `total_batches`: each batch, used for plotting<br>
 > `costs`: each batch cost, used for plotting and printing<br>
 > `crossvalidation_costs`: cost for holdout/k-folds average<br>
 > `finished_training`: keeps track of whether the model has finished training<br>
->
+
 #### Model class
 
-The class that defines a model is `Model`, and you can make as many instances as you want. An instance of this class stores information relevant to the model. However, since throughout this entire time I have only experimented with an individual model (outside of k-folds cross-validation), I have made a global variable `model` which defines the model to be defined/loaded_into, so you may encounter issues doing otherwise without making changes to the code.
-
-The class `Model` stores the model information and setup functions.
+The class that defines a model is `Model`, and you can make as many instances as you want. An instance of this class stores information relevant to the model and the setup functions. However, since throughout this entire time I have only experimented with an individual model (outside of `k-folds` cross-validation), I have made a global variable `model` which defines the model to be defined/loaded_into, so you may encounter issues doing otherwise without making changes to the code.
 
 It stores the layers, weights, loss function, independent and dependent variables, their types, normalization status, whether the model is an image model, among other things.
 
-You can instantiate as many models as you want. However, as it currently stands, unless you manually modify the code, the only instance of the `Model` class that will be relevant is instantiated as the variable `model`. (Copies of that model are also instantiated when using k-folds)
+You can instantiate as many models as you want. However, as it currently stands, unless you manually modify the code, the only instance of the `Model` class that will be relevant is instantiated as the variable `model`. (Copies of that model are also instantiated when using `k-folds`)
 
-Once instantiated, you will need to setup the model. This is explained in detail in the section [Setting up the model](#settig-up-the-model).
+Once instantiated, you will need to setup the model. This is explained in detail in the section [Model setup](#model-setup).
 
 #### Model loading and saving
 You can load a model by calling `load_model` with the model name (excluding the extension), which must be within the `models/` folder.
@@ -349,7 +333,8 @@ You can load a model by calling `load_model` with the model name (excluding the 
 You can save a model by calling `save_model` with the model instance and the model name (excluding the extension), which will be stored in the `models/` folder.
 
 #### JSON model format
-Example format (image models have an extra property, right after `is_image_model`, called `image_dim` which is a 2-element list of the width and height of images like [106, 80])
+> Image model files have an extra property, right after `is_image_model`, called `image_dim` which is a 2-element list of the width and height of images like `[106, 80]`<br>
+**Model configuration file format example**
 ```
 {
     "normalized": `true`,
@@ -418,7 +403,7 @@ The `feedforward` function goes through the model starting at the given layer, w
 
 If `cache` is `True`, which is the case when training, each layer's outputs and inputs are stored (primarily for backpropagation) then reset for the next sample. Otherwise, which is the case when predicting, `cache` is `False`, and those values are not stored.
 
-1. If starting at layer 0, with `cache` being `True`, it stores the `input` in the list of inputs and outputs for the current sample.
+1. If starting at layer `0`, with `cache` being `True`, it stores the `input` in the list of inputs and outputs for the current sample.
 
 2. Multiplies the current layer's weights by the previous layer's outputs (the `input` to the function), and stores the output in `z_l`.
 
@@ -426,24 +411,25 @@ If `cache` is `True`, which is the case when training, each layer's outputs and 
 
 4. The function is recursively called with the current layer's output as the next layer's input and `layer_num` gets incremented by 1, until it reaches the last layer then returns the final output.
 
-> layer weight matrices `model.weights[-1][layer_num - 1]` are of dimension `m x (1 + n)`, where `m` is the number of nodes in the current layer and `n` is the number of nodes in the previous layer (+ 1 for the bias)<br><br>
-> layer inputs (`z_l`) are a matrix of dimension `m x 1`, where `m` is the number of nodes in the given layer<br><br>
-> layer outputs (`a_l`) are a matrix of dimension `n x 1`, where `n` is the number of nodes in the given layer
+> Layer weight matrices `model.weights[-1][layer_num - 1]` are of dimension `m x (1 + n)`, where `m` is the number of nodes in the current layer and `n` is the number of nodes in the previous layer (+ 1 for the bias)<br><br>
+> Layer inputs (`z_l`) are a matrix of dimension `m x 1`, where `m` is the number of nodes in the given layer<br><br>
+> Layer outputs (`a_l`) are a matrix of dimension `n x 1`, where `n` is the number of nodes in the given layer<br>
+> `z_l` and `a_l` are supposed to always have the same dimension - that of the current layer
 
 #### Backpropagation
 
 The backpropagation function goes over the network backwards and calculates relevant values for the calculation of the partial derivatives for each weight variable of each layer, then returns that list.
 
 The following steps are looped through each node, then through each layer backwards, starting at the last layer.
-Most of the node indexing notation is ommitted for readability, but it is implemented in the code.
+Most of the node indexing notation is ommitted for readability, but is implemented in the code.
 
 First, the given node's `errors` are calculated.
 > The `error` of a particular node in layer `k` and index `i` is defined as `dC/dz_k[i]` (the derivative of the cost with respect to the input of the node `i` within the layer `k`)<br><br>
-> The weights indexing is 1 less than the layer indexing. (i.e. if at layer `1`, the weights that connect the input layer `0` to layer `1` are stored in `model.weights[0]`)
+> The weight indexing is 1 less than the layer indexing. (i.e. if at layer `1`, the weights that connect the input layer `0` to layer `1` are stored in `model.weights[0]`)
 
 When at the last layer, `dC/dz_k` is calculated, by separating the steps through the chain rule.
 
-1. `dC/da_k` is calculated (derivative of the cost wrt to the layer's output)
+1. `dC/da_k` is calculated (derivative of the cost wrt the layer's output)
 	> The derivatives for the loss functions are individually implemented as the functions `binary_crossentropy_derivative`, `categorical_crossentropy_derivative`, and `mse_derivative`.
 
 2. The result gets added to the `node_error` variable.
@@ -462,120 +448,113 @@ That is it for the `error` calculation of a given node in a given layer `k`.
 
 In order to get `dC/W_k` (partial derivatives of the cost wrt the weights in the given layer) after already calculating `dC/dz_k` we just need to multiply it by `dz_k/dW_k` (derivative of the layer's input wrt that layer's connection weights).
 
-`dz_k/dW_k` happens to be the previous layer's output nodes (`a_lm1[prev_node - 1, 0]`, the -1 accounts for the bias).
+`dz_k/dW_k` happens to be the previous layer's output nodes (`a_lm1[prev_node - 1, 0]`, the `- 1` accounts for the bias).
 
 Finally, the error of each node in the current layer must be multiplied by the previous layer's output to get the final partial derivatives for that layer/node.
 
 The process repeats for all hidden layers and their nodes until the input layer is reached, then the partials are returned.
 
-Note that I mentioned that the implementation of the chain rule is done separately for each function and derivative, but this is not the case for the `softmax` function combined with `loss_categorical_crossentropy` (multi-class classification model, such as MNIST), as when working out the math certain variables cancel out, but since in the script it's done in separate steps, one of the derivatives returns `0` and since the chain rule is just multiplication, all partials and errors become 0.
-
-For this reason, when the combination is `softmax` as the last layer's activation function and `loss_categorical_crossentropy` for the loss function, the node `error` calculation is implemented in a single line: `node_error = (a_l[node, 0] - observed[0, node]) / n_training_samples`.
-
-The error itself is the layer's output `a_l` minus the real `observed` value for the given input sample. The division by `n_training_samples` is there to average the partial derivatives over the batch size. This should be done by the loss function derivative function when at the last layer, but since for this specific case it was simplified to one step, this needs to be done directly.
+> Note that I mentioned that the implementation of the chain rule is done separately for each function and derivative, but this is not the case for the `softmax` function combined with `loss_categorical_crossentropy` (so for multi-class classification model, such as MNIST). <br>
+> When working out the math, certain variables cancel out, but since in the script it's done in separate steps, one of the derivatives (`dC/da_k`) always returns `0` and as the chain rule is just multiplication, all partials and errors become `0`. So I decided to directly solve for this edge case by implementing the simplified alternative which includes both derivatives.<br>
+> For this reason, when the combination is `softmax` as the last layer's activation function and `loss_categorical_crossentropy` for the loss function, the node `error` calculation is implemented in a single line: `node_error = (a_l[node, 0] - observed[0, node]) / n_training_samples`.<br>
+> The error itself is the layer's output `a_l` minus the real `observed` value for the given input sample. The division by `n_training_samples` is there to average the partial derivatives over the batch size. This should be done within the loss function derivative when at the last layer, but since for this specific case it was simplified to one step, this needs to be done directly.
 
 #### Image loading
 
-`Pillow` is used for image loading whenever using an image model. You can get the pixel matrix of an image by calling `get_image_pixel_matrix`, and passing the absolute or relative folder path, and the image filename. If the `model` argument to this function is not `None` and it doesn't have a previously set `image_bit_depth` variable, the function will set this member variable to be whatever the bit depth for this image is.
+`Pillow` is used for image loading whenever using an image model. You can get the pixel matrix of an image by calling `get_image_pixel_matrix`, and passing the absolute or relative folder path and the image filename. If the `model` argument to this function is not `None` and it doesn't have a previously set `image_bit_depth` variable, the function will set this member variable to be whatever the bit depth for this image has.
 
 The function `load_image_dataset` loads the image dataset from the given `folder`. This folder must have a `labels.txt` file with unique filenames and correct formatting, as well as the respective images.
 
 The images are all assumed to have the same dimension (not necessary to be square) and the same bit depth.
 
-This function reads and parses all images and labels into matrices, retrieves other model relevant information (also allows you to name each image class) if called with a given model as an argument alongside `unique_dataset = True`, and stores them in the local variables `samples`, `labels`, `feature_list`, `feature_types`, `class_list`, `image_dim`, `image_bit_depth`, which the function returns.
+This function reads and parses all images and labels into matrices, retrieves other model relevant information, and also allows you to name each image class if called with a given model as an argument along with `unique_dataset = True`, and stores them in the local variables `samples`, `labels`, `feature_list`, `feature_types`, `class_list`, `image_dim`, `image_bit_depth`, which the function returns.
 
-If you are only interested in loading the dataset irrespective of the model, which is the case as long as the model instance already contains the relevant information (i.e. image bit depth, image dimension, pixel count and classes).
+If you are only interested in loading the dataset irrespective of the model, which is the general case if you only want to load the samples and labels but already have a model with the relevant information (i.e. image bit depth, image dimension, pixel count and classes), you can run it with the argument `unique_dataset = False`. This is the case for the `hold-out` and `test` sets, for example.
 
 You can plot an image from a sample matrix retrieved by calling `get_image_pixel_matrix` with the function `plot_image_from_sample`, by passing the model as argument and the sample matrix.
 
 #### Normalization
 
-When ran with `update_min_maxes` as True, the function `mean_n_variance_normalize` goes through the given dataset and stores the minimum and maximum values for each of the features. This is what `feature_min_maxes` is used for. It is a 2 dimensional array where the first column is the feature index, and in the second column the minimum (0) and maximum (1) value for that feature.
+> If normalizing, the dataset is first normalized to the range `[-1, 1]`, then the mean and standard deviation are measured<br>
+
+When ran with `update_min_maxes` as `True`, the function `mean_n_variance_normalize` goes through the given dataset and stores the minimum and maximum values for each of the features and this is what `feature_min_maxes` is used for. `feature_min_maxes` is a 2-dimensional array where the first column is the feature index, and in the second column the minimum (index `0`) and maximum (index `1`) value for that feature.
 
 If the model is an image model, as of right now, the minimum and maximum value for each feature is hardcoded to, respectively, `0` and `255`.
 
-The function `new_normalize` uses the `feature_min_maxes` and the `Dataset.normalize_helper` function in order to normalize the samples to the range [-1 ,1].
+The function `new_normalize` uses the `feature_min_maxes` and the `Dataset.normalize_helper` function in order to normalize the samples to the range `[-1 ,1]`.
 
-If ran with `update_min_maxes` as False (which is the case when normalization is enabled) the dataset will be mean normalized (subtracts the mean of the given feature for each feature) and standardized (divides by the standard deviation of the given feature for each feature). (Even then it is still called with `update_min_maxes = False` beforehand, in order to store the minimum and maximum values for the normalization), 
-
-> If normalizing, the dataset is first normalized to the range [-1, 1], then the mean and standard deviation are measured
+If ran with `update_min_maxes` as `False` (which is the case when normalization is enabled), the dataset will be mean normalized (subtracts the mean of the given feature for each feature), and standardized (divides by the standard deviation of the given feature for each feature). (Even then it is still called with `update_min_maxes = False` beforehand, in order to store the minimum and maximum values for the normalization), 
 
 #### Dataset metrics evaluation
 
-The function `measure_model_on_dataset` can be called with the relevant data after loading a dataset and a model, in order to measure the performance of the model on that dataset. The resulting measures are stored in the `model_metrics`, `micro_metrics`, `macro_metrics`, and `class_metrics` dictionaries and list that are passed as arguments.
+The function `measure_model_on_dataset` can be called with the relevant data after loading a dataset and a model, in order to measure the performance of the model on that dataset. The resulting measures are stored in the `model_metrics`, `micro_metrics`, `macro_metrics`, and `class_metrics` dictionaries and list that are passed as arguments.<br>
 
-This function gets called `k` times for the `k` models if using `k-folds` cross-validation, for every batch.
-It is called once when training finishes if/with a test set.
-The total cost is always measured.
-For regression models, `r^2` is measured
-For classification models, `accuracy`, `recall`, `precision`, and `f1-score` are measured.
+This function gets called `k` times for the `k` models if using `k-folds` cross-validation, for every batch.<br>
+It gets called at least once when training finishes if a test set is present.<br>
+The total cost is always measured.<br>
+For regression models, `r^2` is measured<br>
+For classification models, `accuracy`, `recall`, `precision`, and `f1-score` are measured.<br><br>
 
-Once a model has been measured for some dataset, you can call `print_model_metrics` to print the relevant metrics, with the `model_metrics`, `micro_metrics`, `macro_metrics`, and `class_metrics` that hold the metrics as arguments to the function.
+> Once a model has been measured for some dataset, you can call `print_model_metrics` to print the relevant metrics, with the `model_metrics`, `micro_metrics`, `macro_metrics`, and `class_metrics` that hold the metrics as arguments to the function.
 
 #### Prediction
 
-The `predict_prompt` function handles the prediction of values for a model. It initializes an input matrix of the same dimension as the input layer and prepends a 1 to account for the bias.
-If the model used a regular comma-delimited dataset, then you will be prompted for the inputs for each feature.
-If the model used an image dataset, it will load an image given as input by the user within the `images/predict` folder for prediction.
-Once the input is properly loaded, if the model was normalized the input also gets normalized, by normalizing the features to [-1, 1], then subtracting the mean and dividing by the standard deviation that were measured for the training set after also normalizing the training set to [-1, 1].
-Finally, it performs forward propagation on the model with this matrix as the input, then prints the result to the console. If the model is an image model the image is also plotted.
+The `predict_prompt` function handles the prediction of values for a model. It initializes an input matrix of the same dimension as the input layer and prepends a `1` to account for the bias.<br>
+If the model used a regular comma-delimited dataset, you will then be prompted for the inputs for each feature.<br>
+If the model used an image dataset, it will load the image given as input by the user within the `images/predict` folder for prediction.<br>
+Once the input is properly loaded, if the model was normalized, the input also gets normalized by normalizing the features to [-1, 1], then subtracting the mean and dividing by the standard deviation that were measured for the training set after also normalizing the training set to [-1, 1].
+Finally, it performs forward propagation on the model with this matrix as the input, then prints the result to the console. If the model is an image model, the image is also plotted.
 
-The function `nn.predict` runs forward propagation, ignoring first layer.
-
-#### Misc
-
-The function `randomize_dataset` shuffles the dataset by swapping column vectors at random from the given samples and dependent_values matrices.
+> The function `nn.predict` runs the forward propagation while ignoring first layer.
 
 #### Training
-The function `nn.train` starts the actual training process. It initializes some variables which will be filled during training, then loops through the number of training steps and calls the nn.step function. Whenever a step finishes, the current step, training cost, and possibly cross-validation cost are printed to the console. Once all steps are done, the variable `finished_training` gets set to `True`.
+The function `nn.train` starts the actual training process. It initializes some variables which will be filled during training, then loops through the number of training steps and calls the `nn.step` function. Whenever a step finishes, the current step, training cost, and optionally cross-validation cost are printed to the console. Once all steps are done, the variable `finished_training` is set to `True`.
 
-Takes as arguments the training parameters, the training samples, and the model to be trained (defaults to `None` if performing `k-folds` cross-validation)
-Initializes empty lists for the `total_batches`, `costs`, `crossvalidation_costs`, `models_model_metrics`, `models_micro_metrics`, `models_macro_metrics`, `models_class_metrics`, as those are filled during training.
+It takes as arguments the training parameters, training samples, and the model to be trained (the `model` argument defaults to `None` if performing `k-folds` cross-validation), and initializes empty lists for the variables `total_batches`, `costs`, `crossvalidation_costs`, `models_model_metrics`, `models_micro_metrics`, `models_macro_metrics`, `models_class_metrics`, as those are filled during training.
 
 The `step` function performs the training step. The behavior when `k-folds` is slightly different from a regular model, as multiple models are measured at once.
 
-For a regular model, this is the process for each sample, as it goes through all samples in the training sample:
+For a regular model, the following is the process for each sample, as it goes through all of the training sample:
 
 1. The model's `layers_a` and `layers_z` member variables are initialized to empty lists, as this information is necessary for backpropagation and is different for each sample.
 2. Forward propagation is performed on the model, starting from the input layer, with the current training sample.
 3. The sample loss is then calculated based on the model, the output of the forward propagation, and the observed values (correct dependent values/labels).
 4. The sample loss is added to the `average_cost` variable, which will later be averaged for the total batch loss.
-5. Backpropagation is performed and the partial derivatives are stored in the `sample_partials`variable, which gets appended to the `batch_partials[0]` (The `0` index here stands for 0th model, as for `k-folds` there is more than one model) variable. This will also get averaged for the total batch loss.
+5. Backpropagation is performed, and the resulting partial derivatives are stored in the `sample_partials` variable, which gets appended to the `batch_partials[0]` list variable (the `0` index here stands for 0th model, as for `k-folds` there is more than one model). This will also get averaged for the total batch loss.
 6. Whenever the number of batch samples is reached:
-	1. The `total_batches` variable which is used for plotting gets appended with the number of the current batch
-	2. The batch cost gets averaged over the number of samples.
+	1. The `total_batches` variable which is used for plotting gets appended with the number of the current batch.
+	2. The batch cost gets averaged over the number of samples in the current batch.
 	3. The batch cost gets appended to the `costs` variable, which holds the cost of each batch and is used for plotting and printing the cost to the console (as of right now, the last batch's average cost is always the one printed and plotted).
 	4. (Optional) If enabled, the model gets evaluated on the `hold-out` set.
-	5. (Optional) If enabled, and the desired number of batches, set through the variable `plot_update_every_n_batches` have been iterated, the plot is drawn
-	6. The batch partials get averaged over the number of samples, and the list gets cleared for the next batch.
+	5. (Optional) If enabled and the desired number of batches set through the variable `plot_update_every_n_batches` have been iterated, the plot is drawn
+	6. The batch partials get averaged over the number of samples in the current batch, and the list gets cleared for the next batch.
 	7. Gradient descent is performed on the model, with the given partial derivatives, learning rate, and number of samples processed in the current batch
 
 The behavior for `k-folds` is similar, except that for each sample the process also loops through each of the `k` models.
 
 The function `sample_loss` calculates the sample loss for a given model, prediction, and observation. It basically goes through each output node and calls the model's loss function with the prediction and observation. The total sample loss is the accumulation of each output node's individual loss. Regularization is then accounted for if enabled.
 
-The `gradient_descent` function updates the model's weights given the partial derivatives, learning rate, and number of samples in the current batch. It also takes into account regularization if enabled.
+The `gradient_descent` function updates the model's weights given the partial derivatives, learning rate, and number of samples in the current batch. It also takes into account the regularization if enabled.
 
-Though both terms are somewhat interchangeable, I mostly reserved the `Network` class to handle the training, predicting, plotting, and sometimes performance measuring of arbitrary models, while the `Model` instance holds information pertaining to the model architecture, its weights, and information regarding the dataset it gets trained on.
+Though both terms are somewhat interchangeable, I mostly reserved the `Network` class to handle the training, predicting, plotting, and sometimes performance measuring of arbitrary models. Meanwhile, the `Model` instance holds information pertaining to the model architecture, its weights, and the dataset it is trained on.
 
-The model architecture gets defined beforehand, as explained in further detail in the section [Setting up a model](#setting-up-a-model)
+The model architecture gets defined beforehand, as explained in further detail in the section [Model setup](#model-setup).
 
-When running the script, a few prompts will ask you for your preferences on certain settings and other things.
+When running the script, a few prompts will ask you for your preferences on certain settings.
 
-The training set is always present, the test and hold-out sets are optional. In the case of k-folds, the entire training set gets split into `k` models, where each of the `k` models have their own subsets of the training set as their training set and test set.
+The training set is always present, while the test and hold-out sets are optional. In the case of k-folds, the entire training set gets split into `k` models, where each of the `k` models have their own subsets of the training set as their training set and test set.
 
-The training, test, and hold-out sets are all matrices of dimension `(n + 1) x m`, where `n` is the number of features the dataset has plus a prepended 1 at the beginning, which accounts for the bias weight, and `m` is the number of samples.
+The training, test, and hold-out sets are all matrices of dimension `(n + 1) x m`, where `n` is the number of features the dataset has plus a prepended 1 at the beginning, which accounts for the bias weight, while `m` is the number of samples.
 
-As for the dependent/observed values, they are matrices of dimension `m x n`, where `m` is the number of classes/dependent variables, and `n` is the number of samples. Depending on the context, it may be internally transposed in certain functions or sections of the code, but generally it is `m x n` (i.e. in the case of `dependent_values`).
+As for the dependent/observed values, they are matrices of dimension `m x n`, where `m` is the number of samples and `n` is the number of classes/dependent variables. Depending on the context, it may be internally transposed in certain functions or sections of the code, but generally it is `m x n` (i.e. in the case of `dependent_values`).
 
-The dataset is loaded by the script `dataset.py`, although some other things are done in `main.py`. It just parses through a comma-delimited file, separates the features, and stores relevant information within its member variables.
+The dataset is loaded by the script `dataset.py` (but called in `main.py`), although some other things are done in `main.py`. It just parses through a comma-delimited file, separates the features, and stores the relevant information.
 
-Whenever running k-folds cross-validation, the models are not saved and you are not able to predict anything at the end of training, and this is by design as it is mostly used as a form of evaluating the model performance. Ideally you should still be able to do these things since there's no real downside to allowing them, but combining this with the time spent implementing this I decided to leave it as is, for now.
+Whenever running `k-folds` cross-validation, the models are not saved and you are not able to predict anything after training, which is by design as it is mostly used as a form of evaluating the model performance. Ideally you should still be able to do these things since there's no real downside to allowing them, but combining this with the time spent implementing everything else I decided to leave it as is, for now.
 
-The function `nn.reset_training_info` resets the member variables which keep track of the training progress, can be useful for retraining a model. As it stands the script doesn't use this, but you could add it to the script as you please. This could be useful for you if you want to train multiple models multiple times.
-
+The function `nn.reset_training_info` resets the member variables which keep track of the training progress. As it stands the script doesn't use this, but you could add it as you please. This could be useful for training a model after another one has already been trained.
 # Example model architectures
-Below are models that I used for testing and experimenting that are seemingly decently accurate
+Below are the models that were used for testing and experimenting, which are seemingly somewhat accurate
 ## Linear regression (`houses.csv`)
 - Independent variable: `area_m2` (Area in m^2 of a house)
 - Dependent variable: `price_brl` (Price in Brazilian reais)
@@ -617,8 +596,8 @@ Below are models that I used for testing and experimenting that are seemingly de
 - `steps`: 50
 
 ## Multi-label classification (`framingham.csv`)
-- Independent variables: `age`, `totChol`, `sysBP`, `glucose` (Person age, cholesterol, systolic blood pressure and glucose)
-- Dependent variables: `prevalentHyp`, `prevalentStrok`, `currentSmoker`, `diabetes` (Whether person is diagnosed with hypertension, has had a stroke, is currently a smoker, and has diabetes)
+- Independent variables: `age`, `totChol`, `sysBP`, `glucose` (Person age, cholesterol, systolic blood pressure, and glucose)
+- Dependent variables: `prevalentHyp`, `prevalentStroke`, `currentSmoker`, `diabetes` (Whether person is diagnosed with hypertension, has had a stroke, is currently a smoker, and has diabetes)
 >**Model**<br><br>
 >---
 >Layers
@@ -637,8 +616,8 @@ Below are models that I used for testing and experimenting that are seemingly de
 - `batch_size`: 300
 - `steps`: 230
 
-## Multi-class classification (`mnist.rar`)
-- Independent variable: Image pixels (28*28, byte-sized color channel)
+## Multi-class classification (`mnist_labeled.rar`/`mnist.rar`)
+- Independent variables: Image pixels (28*28, byte-sized color channel)
 - Dependent variables: Integers in range [0, 9]
 >**Model**<br><br>
 > ---
@@ -659,9 +638,9 @@ Below are models that I used for testing and experimenting that are seemingly de
 - `steps`: 5
 - Only used 50% of the entire training set by reserving the other 50% for a test set
 
-## Multi-class classification (RGB) (`cars.rar`)
+## Multi-class classification (RGB) (`cars_labeled.rar`/`cars.rar`)
 - Independent variable: Image pixels (106*80*3, 3 RGB color channels)
-- Dependent variables: Integers in range [0, 2] that I renamed to the car colors (["black", "blue", "red"])
+- Dependent variables: Integers in range [0, 2] that I renamed to the respective car colors ["black", "blue", "red"]
 >**Model**<br><br>
 >Layers
 > - Input
@@ -683,78 +662,95 @@ Below are models that I used for testing and experimenting that are seemingly de
 
 # Features
 
-- Linear regression
-- Logistic regression
-- Multi-label classification
-- Multi-class classification
-- Accepts comma-delimited '`,`' files and images (those go in the `images/train` folder alongside a `labels.txt` file, which, in each line, contains the name an image within the folder, followed by a comma, and which class it pertains to i.e. `image01.png,0`)
-- (Optional) Save and load models (.json files with model metadata such as each layer's weights, model architecture, information on the dataset it was trained, etc...)
+- Model types
+  - Linear regression
+  - Logistic regression
+  - Multi-label classification
+  - Multi-class classification
+- Activation functions
+  - Linear: `linear`
+  - Rectified Linear Unit: `relu`
+  - Sigmoid: `sigmoid`
+  - Softmax: `softmax`
+- Loss functions
+  - Mean squared error: `loss_mse`
+  - Binary cross-entropy: `loss_binary_crossentropy`
+  - Categorical cross-entropy: `loss_categorical_crossentropy`
+- Accepts comma-delimited '`,`' files and images
+- (Optional) Save and load models (.json files with model/dataset metadata)
 - (Optional) Normalization (normalizes to range [-1, 1], mean normalizes, then standardizes)
 - (Optional) L1 & L2 regularization
 - Arbitrary batch size
 - Arbitrary number of layers and nodes
 - Xavier (linear, sigmoid, softmax) and HE (relu) weight initialization (optionally normally or uniformly distributed)
-- Loading and filtering dataset (comma-delimited '`,`') by column names or column numbers, choose dependent or independent variable, and also (optionally) filter by comparison (i.e. keep only the values for the given column which are >, <, ==, or != to a certain value)
+- Loading and filtering dataset (comma-delimited '`,`') by column names or column numbers, choose dependent or independent variable, and (optionally) filter by comparison operators (i.e. keep only the values for the given column which are `>`, `<`, `==`, or `!=` to a certain value)
 - (Optional) Shuffle dataset
-- (Optional) Measuring/evaluating dataset for performance metrics on an arbitrary model (the function responsible for this is `measure_model_on_dataset` `@main.py`)
+- (Optional) Measuring/evaluating the dataset for performance metrics on an arbitrary model (the function responsible for this is `measure_model_on_dataset` @`main.py`)
 - (Optional) Hold-out, k-folds cross-validation, and test sets
-- (Optional) Plotting cost graphs and test/hold-out set performance metrics (i.e. r^2 for regression models, or accuracy, precision, recall, and f1-score for classification models)
-- (Optional) Arbitrary names for classes for image multi-class classification models
-- Activation functions
-  - Linear (`linear`)
-  - Rectified Linear Unit (`relu`)
-  - Sigmoid (`sigmoid`)
-  - Softmax (`softmax`)
-- Loss functions
-  - Mean squared error (`loss_mse`)
-  - Binary cross-entropy (`loss_binary_crossentropy`)
-  - Categorical cross-entropy (`loss_categorical_crossentropy`)
+- (Optional) Plotting cost graphs and test/hold-out set performance metrics (i.e. `r^2` for regression models, or `accuracy`, `precision`, `recall`, and `f1-score` for classification models)
+- (Optional) Arbitrary names for classes of image multi-class classification models
+  
 # Notes
 
-- Currently, the only accepted datasets are files delimited by a comma '`,`', and images, which must be put into the folder `images/train` for training (and testing if it was enabled and no separate folder was chosen), `images/predict` for images to predict once the training is finished or after loading a model, and `images/test` if using a test set and a separate folder was chosen in the settings
+- Currently, the only accepted datasets are files delimited by a comma '`,`' and images
 
-- Normalization (prior to mean normalization and standardizing) is within the range [-1, 1], by design choice.
-- Dataset loader skips first row and expects each variable to be a different column
-- The class names for a model trained on a comma-delimited '`,`' dataset will be whatever column names they had, meanwhile, for images they will be integers increasing from `0` to `k` where `k` is the number of classes, or you can optionally manually input a label for each of those classes.
-- Expect bugs, inaccuracies, lack of speed, high memory consumption, and general lack of optimization.
-- A practical example of the script exceeding available memory and crashing for me was running the MNIST example, but instead of using a batch size of 32 as shown in the video, using a batch size of 1 caused it to crash in between the 4th and 5th steps for me, with 32GB RAM.
-- Currently the script needs images of the same dimension (no need to be square), as the input layer dimension is pre-defined.
+- Normalization (prior to mean normalization and standardizing) gets the features within the range [-1, 1], by design choice
+  
+- The dataset loader skips the first row (which should be the column/variable names) and assumes that each variable is a different column
+
+- The class names for a model trained on a comma-delimited '`,`' dataset will be whatever column names they had. Manwhile, for images, they will be integers increasing from `0` to `k`, where `k` is the number of classes. You can optionally manually input a label for each of those classes, in the case of an image dataset
+  
+- Expect bugs, inaccuracies, lack of speed, high memory consumption, and general lack of optimization
+  
+- A practical example of the script exceeding available memory and crashing, for me with 32GB RAM, was running the MNIST example, but instead of using a batch size of 32 as shown in the example video, using a batch size of 1 caused it to crash in between the 4th and 5th steps
+  
+- Currently the script needs images of the same dimension (no need to be square), as the input layer's dimension is pre-defined
+  
 - If the batch size is set to a value that is greater than the number of training samples, it is clipped to be the number of training samples. (You can also use this to force batch gradient descent when you don't know the exact number of training samples, as any value greater than that will suffice)
-- Do not normalize input if the model is trained on images and the images are not in the range [0, 255]. This is because I hardcoded all normalized images' pixels/features to be assumed to be in the range [0, 255].
-- When training a model with k-folds cross-validation, you won't be able to make predictions afterward nor will you be prompted whether to save a model. It is only used as a means of performance metrics evaluation, this is by design.
-- The script expects all images to have pixel colors in the range [0, 255] for normalization. That can be changed within the function `mean_n_variance_normalize`, by changing the feature min maxes from `0` and `255` to whatever minimum and maximum values you're using, respectively.
-- When training a model with k-folds, if the number of traiing samples is not exactly divisible by the number of folds, the spare sample will be ignored.
-- Image labels cannot have duplicate filenames in the text file, as they are identified by them and assumed to be unique.
+  
+- Do not normalize input if the model is trained on images and the images are not in the range `[0, 255]`. For example if every pixel is `0` or `1`. This is because I hardcoded all normalized images' pixels/features to assume to be in the range `[0, 255]`
+
+- When training a model with `k-folds` cross-validation, you won't be able to make predictions afterward, nor will you be prompted whether to save a model. It is only used as a means of performance metrics evaluation. This is by design
+
+- The script expects all images to have pixel colors in the range `[0, 255]` for normalization. This can be changed within the function `mean_n_variance_normalize`, by changing the feature min maxes from `0` and `255` to whatever minimum and maximum values you're using, respectively
+
+- When training a model with k-folds, if the number of training samples is not exactly divisible by the number of folds, the spare sample will be ignored
+
+- Image labels cannot have duplicate filenames in the `labels.txt` text file, as they are uniquely identified by them
 
 - You can print a model's performance metrics (if it has been measured prior) with the function `print_model_metrics`
 
-- Strings as inputs haven't been properly implemented or tested.
-- The `model` class members `sample_features_mean`, `sample_features_std`, `sample_features_variance`, are measured over the training samples (after normalizing the input to the range [-1, 1] but before mean normalizing and standardizing, if normalization was enabled). Meanwhile, the non `model` class members, such as `training_features_mean` and `test_features_mean`, are the measurements after the input is normalized (if that is the case, otherwise `model.sample_features_mean` is the same as `training_features_mean`, for example). That is because whenever the input needs to be re-normalized, such as in the case of predicting an arbitrary user input once the model is trained, you need to know the `mean` and `std` before mean normalizing and standardizing but after normalizing to [-1, 1], as well as the minimum and maximum values of each input feature in order to normalize it to [-1 ,1], which is what the variable `model.feature_min_maxes` is used for. These are also used for performance measurements and reversing the normalization.
+- Strings as inputs haven't been properly implemented nor tested
+  
+- The `model` class members `sample_features_mean`, `sample_features_std`, `sample_features_variance`, are measured over the training samples (if normalization was enabled, this is done after the input is in the range [-1, 1], but before mean normalizing and standardizing).<br>
+Meanwhile, the non `model` class members, such as `training_features_mean` and `test_features_mean`, are measured after the input is normalized (if that is the case, otherwise `model.sample_features_mean` is the same as `training_features_mean`, for example). That is because whenever the input needs to be re-normalized, such as in the case of predicting an arbitrary user input once the model is trained, you need to know the `mean` and `std` before mean normalizing and standardizing, but after normalizing to [-1, 1], as well as the minimum and maximum values of each input feature in order to normalize it to [-1 ,1], which is what the variable `model.feature_min_maxes` is used for. These are also used for performance measurements and reversing the normalization process
 
-- I could not make a model that performs well predicting different car brands of the same color (RGB), using a similar architecture to the model that predicts car colors. I don't know the exact reason for this, although it is evidently a more complex task than the other examples. Possibly solvable with convolutional layers?
+- Regularization has not been extensively tested
 
-- Note: Regularization has not been extensively tested.
+- I could not make a model that performs well when predicting different car brands of the same color (RGB), using a similar architecture to the model that predict
+s car colors. I don't know the exact reason for this, although it is evidently a more complex task than the other examples. Possibly solvable with convolutional layers?
+  
 # Todo
 
-- Implement the same behavior of optionally storing images in a separate folder as the `test` folder for the `holdout` folder
+- Implement the same behavior of optionally storing images in a separate `holdout` folder as can be done with the `test` folder
 
 - Option to convert images that are RGB/RGBA into grayscale
 
-- Separate the bias from the normal weights and separately calculate/update it or leave it as is?
+- Separate the bias from the normal weights and separately calculate/update it, or leave it as is?
 
-- Estimate time remaining for training to finish
+- Estimate time remaining for training to finish based on how long it took for the last step to finish
 
 - Refactor code and standardize variable names
 
-- Decouple and isolate functions, settings, models, and datasets, 
+- Decouple and isolate functions, settings, models, and datasets
 
-- Separate main.py into multiple scripts for better isolation/readability
+- Separate `main.py` into multiple scripts for better isolation/readability
 
 - Option to evalute model on a given test set without the need to train it
 
 - Let user arbitrarily choose how often they want the cross-validation model(s) to be evaluated during training, instead of automatically doing it for every single batch
 
-- Let user choose how much to smoothen the graph(s) (if at all), through exponentially moving averages
+- Implement exponentially moving averages for plotting and let user choose how much to smoothen the graph(s) (if at all)
 
 - Implement means to achieve better performance, such as vectorizing everything, using Jacobian matrices, CUDA (NVIDIA only), and SIMD instructions? I probably won't do this, as the primary goal of this project was learning, and readability is much preferred over performance
 
@@ -770,18 +766,18 @@ Below are models that I used for testing and experimenting that are seemingly de
 
 - Implement other optimizers/adaptive learning rates such as adagrad/adam/rmsprop, etc...
 
-- Let user save/predict, once training ends, any chosen model(s) when training with k-folds cross-validation
+- Let user save/predict  any chosen model(s) with k-folds cross-validation once training ends
 
 - Improve performance of the plots
 
-- Automatically save or allow user to choose whether to keep checkpoints of the model at specific points/intervals of the training (i.e. save model every 100 steps, or once steps are 500, etc.)
+- Automatically save or allow user to choose whether to keep checkpoints of the model at specific points/intervals during training (i.e. save model every 100 steps, or once steps are 500, etc.)
 
-- Let user run script with "default settings" (i.e. normalize, shuffle dataset, no cross-validation, and a test set which is 25% of the training samples) in order to confuse the user less with too many settings, and also avoid repetition when testing things out?
+- Let user run script with "default settings" (i.e. the values already defined in the script, such as to normalize, shuffle dataset, no cross-validation, and a test set which is 25% of the training samples) mainly for avoiding repetition when testing things out
 
 - Implement hyperparameter tweaking during cross-validation
 
-- Properly implement strings as input and try out a sentiment analysis dataset
+- Properly implement strings as input and experiment with a sentiment analysis dataset
 
-- Prompt user whether to calculate and store micro statistics, macro statistics and/or model statistics? Worried that prompt would be too cumbersome as it's already bloated with settings, and this can already be done manually, though not tested, by passing `model_metrics`, `micro_metrics`, `macro_metrics` and/or `class_metrics` as `None`, instead of the 3 former being a dictionary and the latter a list. This would be particularly useful to increase speed and decrease memory usage for models trained with cross-validation.
+- Prompt user whether to calculate and store micro statistics, macro statistics and/or model statistics? The prompt might become too cumbersome as it's already bloated with a lot of settings. This can already be done manually, though not tested, by passing `model_metrics`, `micro_metrics`, `macro_metrics` and/or `class_metrics` as `None` to the function `measure_model_on_dataset`, instead of the former 3 being a dictionary and the latter a list. This would be particularly useful in order to increase speed and decrease memory usage for models trained with cross-validation
 
-- Let user input learning rate, regularization rate and the type (L1 or L2), batch size, and the frequency at which the plot (if enabled) is updated? Also worried about too many settings.
+- Let user input the learning rate, regularization rate including the type (L1 or L2), batch size, and the frequency at which the plot (if enabled) is updated? Also worried about too many settings
