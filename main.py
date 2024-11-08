@@ -9,7 +9,7 @@ import copy
 from PIL import Image
 
 # Cost function is the accumulation of the loss function over a given batch of the dataset
-# I average the cost function for every batch
+# The cost gets averaged for every batch
 
 # Mean squared error (for regression (infinite continuous values))
 def loss_mse(predicted, observed):
@@ -92,8 +92,10 @@ def softmax(z, z_l):
     return result
 '''
 node: Current node number
-z: Current node's z
-z_l: All current layer's zs
+i: Current node index
+j: Other node index
+a_i: Current node value
+a_j: Other node value
 '''
 def softmax_derivative(i, j, a_i, a_j):
     # sj
@@ -160,28 +162,10 @@ class Network:
 
         new_input = input # Includes prepended 1 to account for bias
 
-        '''
-        if not prepend_ones_prior:
-            new_input = np.zeros((input.shape[0] + 1, input.shape[1]), dtype=np.float64)
-            new_input[0, 0] = 1
-
-            for row in range(1, new_input.shape[0]):
-                new_input[row, 0] = input[row - 1, 0]
-        '''
-
         # Preprends 1 for bias (layer 0 and 1 already include prepended 1)
         if layer_num == 0:
             if cache:
                 new_input_without_1 = new_input[1:, 0]
-
-                '''
-                new_input_without_1 = np.zeros((new_input.shape[0] - 1, 1), dtype=np.float64)
-                new_input_without_1 = np.matrix(new_input_without_1)
-
-                for neuron in range(1, new_input.shape[0]):
-                    new_input_without_1[neuron - 1, 0] = new_input[neuron, 0]
-
-                '''
 
                 model.layers_a.append(new_input_without_1)
                 model.layers_z.append(new_input_without_1)
@@ -234,18 +218,6 @@ class Network:
 
         # The loop starts at the output layer and goes back, stops at layer 1 (layer the input layer is connected to)
         # In a 3 layer arrangement, the loop goes 2 -> 1
-
-        '''
-        print(f"Input: {model.layers_a[0]} | {model.layers_a[0].shape} | {len(model.layers_a[0])}")
-        print(f"W_0 (layer 0 -> layer 1): {model.weights[-1][0]} | {model.weights[-1][0].shape} | {len(model.weights[-1][0])}")
-        print(f"Z_1 (layer 1 input): {model.layers_z[1]} | {model.layers_z[1].shape} | {len(model.layers_z[1])}")
-        print(f"A_1 (layer 1 output): {model.layers_a[1]} | {model.layers_a[1].shape} | {len(model.layers_a[1])}")
-        print(f"W_1 (layer 1 -> layer 2): {model.weights[-1][1]} | {model.weights[-1][1].shape} | {len(model.weights[-1][1])}")
-        print(f"Z_2 (layer 2 input): {model.layers_z[2]} | {model.layers_z[2].shape} | {len(model.layers_z[2])}")
-        print(f"A_2 (layer 2 output): {model.layers_a[2]} | {model.layers_a[2].shape} | {len(model.layers_a[2])}")
-        print(f"One hot: {observed} | {observed.shape} | {len(observed)}")
-        '''
-
         
         for layer in reversed(range(1, len(model.layers))):
             a_l = model.layers_a[layer]
@@ -356,10 +328,6 @@ class Network:
                 # Accounting for bias (1)
                 partial[node, 0] = node_error
 
-                # print(f"Node error: {node_error}")
-                # print(f"A_LM1: {a_lm1}")
-                # print(f"A_L: {a_l}")
-                # print(f"AS: {self.layers_a}")
                 for prev_node in range(1, w_l.shape[1]):
                     partial[node, prev_node] = node_error * a_lm1[prev_node - 1, 0]
                     
@@ -383,16 +351,6 @@ class Network:
                     print(f"Backpropr: {partial}")
                     print(f"Approximate: {approximation}")
                 '''
-            
-            '''
-            if layer == 2:
-                print(f"DELTA_ERROR_2: {layer_error} | {layer_error.shape} | {len(layer_error)}")
-                print(f"DW_1: {partial} | {partial.shape} | {len(partial)}")
-            elif layer == 1:
-                print(f"DELTA_ERROR_1: {layer_error} | {layer_error.shape} | {len(layer_error)}")
-                print(f"DW_0: {partial} | {partial.shape} | {len(partial)}")
-            '''
-            
 
             layer_errors.append(layer_error)
             partials.append(partial)
@@ -424,10 +382,6 @@ class Network:
                 # Apply only L2 regularization if L1 is not set or 0
                 if current_layer.l1_rate == 0:
                     new_weight = (weight * (1 - (lr * current_layer.l2_rate / current_batch_total_samples))) - (lr * partial)
-                    # print(f"Old weight: {weight}")
-                    # print(f"New weight: {weight - (lr * partial)}")
-                    # print(f"New weight (regularized): {new_weight}")
-                    # exit(-1)
 
                 # Apply only L1 regularization if L2 is not set or 0
                 elif current_layer.l2_rate == 0:
@@ -485,33 +439,6 @@ class Network:
             # final_partials[layer_connection] = final_partials[layer_connection] / total_batch_samples
 
         return final_partials
-
-    def preprocess_dataset():
-        # Randomize, etc.
-
-        '''
-        if prepend_ones_prior:
-            training_samples = np.zeros((1 + len(dataset.feature_list), len(dataset.filtered_entries)))
-            for num, entry in enumerate(dataset.filtered_entries):
-                training_samples[0, num] = 1
-                #print(f"{entry.features} - {entry.dependent_variable_value}")
-                pass
-        '''
-        return
-    
-    '''
-    def plot(self, i):
-        plt.cla()
-        try:
-            plt.plot(self.total_batches, self.costs)
-        except:
-            return
-        
-
-        if self.finished:
-            self.ani.event_source.stop()
-            print("Stopped animating the graph. Close it in order to predict values.")
-    '''
 
     def sample_loss(self, model, predicted_output, observed_output):
         sample_loss = 0
@@ -759,13 +686,6 @@ class Network:
                 observed_values = dependent_values[sample - 1, :]
                 output = self.feedforward(model, 0, training_samples[:, sample - 1], True)
 
-                '''
-                for out in range(output.shape[0]):
-                    val = output[out, 0]
-                    if val > 1 or val < 0:
-                        print(f"Input: {training_samples[:, sample - 1]} | Output: {output}")
-                        exit(-1)
-                '''
                 # Allow user to give custom loss function?
                 sample_loss = self.sample_loss(model, output, observed_values)
 
@@ -829,22 +749,6 @@ class Network:
                         xs.append(self.total_batches[-1])
                         cost_ys[0].append(self.costs[-1])
                         axes[0][0].plot(xs, cost_ys[0], color=costs_plotting_colors[0])
-
-                        '''
-                        if len(cost_ys[0]) > 1:
-                            maxi = max(cost_ys[0])
-                            mini = min(cost_ys[0])
-
-                            new_ys = [Dataset.normalize_helper(cost, mini, maxi, 0, 1) for cost in cost_ys[0]]
-
-                            for idx, cost in enumerate(new_ys):
-                                print(f"{cost_ys[0][idx]} -> {cost}")
-
-                        else:
-                            new_ys = [1]
-
-                        axes[0][0].plot(xs, new_ys, color=costs_plotting_colors[0])
-                        '''
 
                         if use_holdout:
                             if model.is_classification():
@@ -1682,13 +1586,6 @@ def measure_model_on_dataset(model, samples, samples_dependent_values, features_
                     
                     dependent_variable_mean = dependent_variables_mean[dependent_variable]
 
-                    # print(feature_value)
-                    # print(feature_mean)
-                    # print(dependent_value)
-                    # print(dependent_variable_mean)
-                    # print(predicted_value)
-                    # exit(-1)
-
                     # top = (feature_value - feature_mean) * (dependent_value - model.sample_dependent_variables_mean[dependent_variable])
                     top = (feature_value - feature_mean) * (predicted_value - model.sample_dependent_variables_mean[dependent_variable])
                     bottom = [0, 0]
@@ -1713,12 +1610,6 @@ def measure_model_on_dataset(model, samples, samples_dependent_values, features_
         
         sample_loss = nn.sample_loss(model, predicted_matrix, observed_matrix)
         average_cost += sample_loss
-            
-        '''
-        if output_layer_dim > 1:
-            for row in range(1, output_layer_dim):
-                    predicted_value = max(predicted_value, predicted_matrix[row, 0])
-        '''
 
     if model.loss_function == loss_mse or model.loss_function == loss_binary_crossentropy or model.loss_function == loss_categorical_crossentropy:
         average_cost /= samples.shape[1]
@@ -2184,10 +2075,6 @@ def predict_prompt(model, predicting_after_training=True):
             if invalid_value:
                 continue
 
-        # bias = nn.weights[-1][0][0, 0]
-        # theta = nn.weights[-1][0][0, 1]
-        # nn.weights[-1][0][0, 0] = theta
-        # nn.weights[-1][0][0, 1] = bias
 
         prediction_matrix = nn.predict(model, input_matrix)
         # print(f"Input matrix: {input_matrix}")
@@ -2215,44 +2102,6 @@ def predict_prompt(model, predicting_after_training=True):
             elif result == 'n':
                 predicting = False
                 break
-
-        ## HOW SHOULD I INTERPRET THE PREDICTION MATRIX IN EACH SPECIFIC CASES FOR CLASSIFICATION MODELS, AND REGRESSION MODELS? SHOULD I LEAVE IT UP TO THE USER TO INTERPRET THAT INFORMATION?
-        ## FOR CLASSIFICATION MODELS, GO THROUGH EACH DEPENDENT VARIABLE AND PRINT THE RESPECTIVE PROBABILITY
-
-        ## CLASSIFICATION
-        ## i.e. 
-        ## {dependent_var} probability: {prediction_matrix[respective_dependent_var, 0]}
-        ##
-        ## hypertension probability: 0.6
-        ## diabetes probability: 0.7
-        ## heart_disease probability: 0.8
-        ## cancer probability: 0.2
-        ## tooth_problems probability: 0.3
-
-        ## REGRESSION
-        ## i.e. 
-        ## {dependent_var}: {prediction_matrix[respective_dependent_var, 0]}
-        ##
-        ## price: 440000
-        ## tax: 25000
-        ## hoa: 400
-        ## rent: 5000
-
-        ## ALLOW USER TO INPUT THRESHOLD FOR DEPENDENT VARIABLES FOR TRUE OR FALSE IF CLASSIFICATION MODEL
-        '''
-        prediction = prediction_matrix[0, 0]
-
-        print(f"Predicted matrix: {prediction_matrix}")
-
-        # If considered a classification model
-        if output_layer_dim > 1 and nn.layers_in_order[-1].activation_function == sigmoid:
-            predicted_class = 0
-            for row in range(1, output_layer_dim):
-                predicted_class_value = prediction_matrix[row, 0]
-                if predicted_class_value > prediction:
-                    prediction = predicted_class_value
-                    predicted_class = row
-        '''
 
 # Only normalizes if model.normalized == True
 def mean_n_variance_normalize(model, samples, update_min_maxes=True, ignore_bias=True):
@@ -2301,13 +2150,6 @@ def mean_n_variance_normalize(model, samples, update_min_maxes=True, ignore_bias
             if update_min_maxes:
                 model.feature_min_maxes[feature_idx][0] = min(entry_new_value, model.feature_min_maxes[feature_idx][0])
                 model.feature_min_maxes[feature_idx][1] = max(entry_new_value, model.feature_min_maxes[feature_idx][1])
-    
-    '''
-    else:
-        for feature_idx in range(model.layers_in_order[0].dim):
-            model.feature_min_maxes[feature_idx][0] = 0
-            model.feature_min_maxes[feature_idx][1] = 255
-    '''
 
 # Puts feature in [-1, 1] range (does not mean and variance normalize)
 def new_normalize(model, samples, ignore_bias=True):
@@ -2385,20 +2227,6 @@ def get_image_pixel_matrix(folder, image, model=None):
             else:
                 for color_channel in pixel:
                     parsed_pixels.append(color_channel)
-
-        # if uses_grayscale_images:
-        #     if type(pixel) == list or type(pixel) == tuple:
-        #         # parsed_pixels.append(pixel[0] / 255.0)
-        #         # Not dividing by 255.0 in order to let user choose whether to normalize data or not at runtime
-        #         parsed_pixels.append(pixel[0])
-        #     elif type(pixel) == int or type(pixel) == float:
-        #         # parsed_pixels.append(pixel / 255.0)
-        #         # Not dividing by 255.0 in order to let user choose whether to normalize data or not at runtime
-        #         parsed_pixels.append(pixel)
-        # else:
-        #     for color_channel in pixel:
-        #         parsed_pixels.append(color_channel)
-
 
     parsed_pixels = np.matrix(parsed_pixels).transpose()
     return parsed_pixels
@@ -2644,89 +2472,18 @@ while True:
 
 ### Define model architecture here if it hasn't been previously loaded from a file
 if not loaded_model:
-    '''
-    model.add_layer(0, 1, 0)
-    model.add_layer(1, 3, 1)
+    model.add_layer(0, 28*28, 0)
+    model.add_layer(1, 50, 1)
     model.set_activation_function(1, relu)
-    model.add_layer(2, 3, 2)
+    model.add_layer(2, 10, 2)
     model.set_activation_function(2, softmax)
     model.set_loss_function(loss_categorical_crossentropy)
-    '''
-
-    '''
-    model.add_layer(0, 1, 0)
-    model.add_layer(1, 3, 1)
-    model.set_activation_function(1, linear)
-    model.add_layer(2, 1, 2)
-    model.set_activation_function(2, linear)
-    model.set_loss_function(loss_mse)
-    '''
-    # model.add_layer(0, 106*80*3, 0)
-    model.add_layer(0, 1, 0)
-    # model.add_layer(1, 50, 1)
-    # model.add_layer(2, 1, 2)
-    # model.set_activation_function(1, relu)
-
-    model.add_layer(1, 1, 2)
-    model.set_activation_function(1, linear)
-    # model.set_activation_function(2, linear)
-    # model.set_loss_function(loss_mse)
-    model.set_loss_function(loss_mse)
 
     model.setup_done(is_loaded_model=False)
     model.print_architecture()
 
-    # model.set_regularization(1, 0, 0.1)
-
     # model.set_regularization(1, 0, 0)
     # model.set_regularization(2, 0, 0)
-    # model.set_regularization(1, 0.01, 0.1)
-    # model.set_regularization(2, 0.01, 0.1)
-
-# 0.0001
-
-# nn.set_regularization(1, 0, 0)
-# nn.set_regularization(2, 0, 0)
-
-# nn.set_regularization(1, l1_rate=0, l2_rate=0)
-
-
-# lr = 0.001 good for 2 relu hidden layers with linear output
-# lr = 0.5
-
-# 1 dimensional input-output linear regression
-
-# batch size 32
-# lr non-normalized: 0.001 | steps 1000 (WORKING)
-# lr normalized: 150 | steps 100
-
-# batch size 11293
-# lr non-normalized: 0.5 | steps: 1000000....
-# lr normalized: 800 | steps: 100
-
-#0.5, 100 - [[ 376.23059087 5532.17079501]]
-#0.5, 5000 - [[16215.07718159  5413.07017895]]
-#0.55, 10000 - [[34273.79647371  5277.27717278]]
-
-# Weights: [array([[0.0737276]], dtype=float32), array([-4.80284], dtype=float32)]
-
-'''
-Step: 10000 | Training cost: 100431889464.35463
-Finished training.
-33
-99
-2 Plot showed, joined training
-(Layer 0 weights): [[3361.5906031  5509.72230328]]
-
-Training cost: 100431889464.35463 | Total samples: 11293
-Predict? (You can save the model after) (y/n) y
-area_m2 (float): 100
-Input matrix: [[  1.]
- [100.]]
-Predicted value (price_brl): 554333.8209315466
-
-
-'''
 
 # model.weights = [np.matrix([-0.7940663, 1.5971815])]
 # model.weights = [np.matrix([0, 0.05])]
@@ -2736,33 +2493,11 @@ Predicted value (price_brl): 554333.8209315466
 
 print(f"Initial weights")
 model.print_weights()
-lr = 0.1
-# batch_size = 32
-# batch_size = 1
-batch_size = 11293
-# steps = 5
-# steps = 300
-steps = 25
-# batches_per_step = int(11293 / batch_size)
+lr = 0.03
+batch_size = 32
+steps = 5
 
-plot_update_every_n_batches = 1
-# plot_update_every_n_batches = 8469
-# plot_update_every_n_batches = 500
-# Not normalizing
-# lr = 0.000000000005
-# lr = 0.1
-
-# Normalizing
-# lr = 0.000000001
-# lr = 0.000000001
-# lr = 0.000000001
-
-# Normalizing doesn't seem to work properly, also drastically influences the learning rate
-
-# Load and preprocess dataset
-#dataset_file = "dataset.csv"
-
-
+plot_update_every_n_batches = 12
 
 if not loaded_model:
     is_image_model = False
@@ -2781,19 +2516,6 @@ if not loaded_model:
             break
 
     model.is_image_model = is_image_model
-    
-'''
-uses_grayscale_images = False
-if model.is_image_model:
-    while True:
-        result = input("Does the model use black and white images? (y/n) ")
-        if result == 'y':
-            uses_grayscale_images = True
-            break
-        elif result == 'n':
-            uses_grayscale_images = False
-            break
-'''
 
 while True:
     result = input("Train or predict? (0/1) ")
@@ -3468,29 +3190,6 @@ elif not use_kfolds:
         test_dependent_variables_variance = result["dependent_variables_variance"]
         test_dependent_variables_std = result["dependent_variables_std"]
 
-    # Normalization is reversed here in order to calculate the training features' mean and variance (ideally by making some changes to the scripts there should be no need for all of this, but I will leave it like this for now as I want it to be functional first)
-    '''
-    if dataset.should_normalize:
-        prenorm_training_features_mean = [0 for _ in range(len(dataset.feature_list))]
-        prenorm_training_features_variance = [0 for _ in range(len(dataset.feature_list))]
-
-        for sample in range(total_training_samples):
-            for feature_idx, feature in enumerate(dataset.feature_list):
-                postnorm_feature_value = without_one_training_samples[feature_idx, sample]
-                prenorm_feature_value = postnorm_feature_value * dataset.features_variance[feature_idx]
-                prenorm_feature_value = prenorm_feature_value + dataset.features_mean[feature_idx]
-                prenorm_feature_value = dataset.feature_min_maxes[feature_idx][0] + (((dataset.feature_min_maxes[feature_idx][1] - dataset.feature_min_maxes[feature_idx][0]) * (postnorm_feature_value + 1)) / 2)
-
-                prenorm_training_features_mean[feature_idx] += prenorm_feature_value / total_training_samples
-                prenorm_training_features_variance[feature_idx] += (prenorm_feature_value * prenorm_feature_value) / total_training_samples
-    '''
-
-
-    # model.dependent_variables_mean = training_dependent_variables_mean
-    # model.dependent_variables_variance = training_dependent_variables_variance
-    # model.dependent_variables_std = training_dependent_variables_std
-
-
 ## Following is done to keep track of the features, their types, the classes, and information to perform normalization (if needed), this is needed when loading models from scratch for prediction
 ## The values in model.feature_min_maxes, `model.samples_features_mean`, `model.sample_features_variance` are all based on the training samples, before the normalization (so the default training samples' values)
 
@@ -3631,20 +3330,6 @@ if use_kfolds:
     nn.train(batch_size=batch_size, steps=steps, lr=lr, training_samples=training_samples, dependent_values=training_dependent_values)
 else:
     nn.train(model=model, batch_size=batch_size, steps=steps, lr=lr, training_samples=training_samples, dependent_values=training_dependent_values)
-
-# training_thread.start()
-#nn.train(batch_size=10, steps=1000, lr=0.001, training_samples=training_samples, dependent_values=dependent_values)
-
-
-
-# print("33")
-
-# figure.tight_layout()
-# figure.show()
-# print("99")
-# print("2 Plot showed, joined training")
-
-# training_thread.join()
 
 ##
 ##

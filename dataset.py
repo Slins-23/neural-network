@@ -62,98 +62,6 @@ class Dataset:
 
         print(f"Total samples: {len(self.entries)}")
         print(f"Total filtered samples: {len(self.filtered_entries)}")
-
-        '''
-        self.N = len(self.filtered_entries)
-
-        result = self.get_dataset_stats(True)
-        self.features_mean = result["features_mean"]
-        self.features_variance = result["features_variance"]
-        self.features_std = result["features_std"]
-        self.dependent_variables_mean = result["dependent_variables_mean"]
-        self.dependent_variables_variance = result["dependent_variables_variance"]
-        self.dependent_variables_std = result["dependent_variables_std"]
-
-        self.should_normalize = False
-        normalization_warned = False
-        while True:
-            if not normalization_warned:
-                print("\nNote: Normalizing the dataset for training results in weights trained on the normalized values. (Meaning different than those weights on non-normalized samples)")
-                print("However, it sometimes tends to make data processing faster, among other things.")
-                print("The model should perform similarly given the ideal parameters")
-                print("Restricts training data to [-1, 1]")
-                print("The weights lose some interpretation value compared to training on non-normalized data, if you're trying to infer things from looking at them as is.")
-                print("i.e. In a model that predicts house prices with respect to its area (m²), the feature weight B1 represents the price per square meter of the model. However, if normalized, you would have to perform some additional calculations in order to get that number back, as it would need to be 'denormalized'.")
-                
-                normalization_warned = True
-
-            
-            should_normalize = input("Normalize dataset? (y/n) ")
-
-            if should_normalize == 'y':
-                self.should_normalize = True
-            elif should_normalize == 'n':
-                self.should_normalize = False
-            else:
-                print("Invalid input. Should be 'y' or 'n'.")
-                continue
-            
-            break
-
-        self.feature_min_maxes = []
-        for feature_type in self.feature_types:
-            if feature_type == "str":
-                self.feature_min_maxes.append([0, -math.inf])
-            elif feature_type == "float":
-                self.feature_min_maxes.append([math.inf, -math.inf])
-
-            # Mean normalization (sets mean of feature axes to 0) & variance normalization
-
-        for entry in self.filtered_entries:
-            for feature_idx, feature in enumerate(self.feature_list):
-                entry_old_value = entry.features[feature]
-
-                if self.should_normalize:
-                    entry.features[feature] -= self.features_mean[feature_idx]
-
-                    if entry == self.filtered_entries[0]:
-                        print(f"Original: {self.filtered_entries[0].column_value_dict}")
-                        print(f"After mean normalization: {self.filtered_entries[0].features}")
-
-                    # entry.features[feature] /= self.features_variance[feature_idx]
-                    entry.features[feature] /= self.features_std[feature_idx]
-
-                    if entry == self.filtered_entries[0]:
-                        print(f"After variance normalization: {self.filtered_entries[0].features}")
-                        
-
-                if self.feature_types[feature_idx] == "str":
-                    for key in self.nan_values:
-                        if self.nan_values[key] == entry_old_value:
-                            self.nan_values[key] = entry.features[feature]
-
-                self.feature_min_maxes[feature_idx][0] = min(entry.features[feature], self.feature_min_maxes[feature_idx][0])
-                self.feature_min_maxes[feature_idx][1] = max(entry.features[feature], self.feature_min_maxes[feature_idx][1])
-
-        if self.should_normalize:
-            
-            # Normalizes features to [-1, 1] range
-            for entry in self.filtered_entries:
-                if entry == self.filtered_entries[0] and self.should_normalize:
-                    print(f"Before -1, 1: {entry.features}")
-                    self.normalize(entry)
-                    print(f"After -1, 1: {entry.features}")
-                else:
-                    self.normalize(entry)
-
-            result = self.get_dataset_stats(True)
-            self.features_mean = result["features_mean"]
-            self.features_variance = result["features_variance"]
-            self.features_std = result["features_std"]
-            self.dependent_variables_mean = result["dependent_variables_mean"]
-            self.dependent_variables_variance = result["dependent_variables_variance"]
-            self.dependent_variables_std = result["dependent_variables_std"]
-        '''
   
     def populate_entries(self):
         print("Note: The dataset must be .csv formatted, with ',' as a delimiter, and each column in the first row must contain the respective feature name.")
@@ -544,15 +452,6 @@ class Dataset:
                                 break
 
                         l_comparison_operators.append(comparison_operator)
-                    elif target_feature == "distance_builtin":
-                        comparison_operator = input(f"Type in the comparison operator to compare the distance against the value '{l_comparison_targets[idx]}' (must be '==', '!=', '<', '<=', '>=' or '>'): ").strip()
-                        
-                        if comparison_operator not in valid_operators:
-                            print("Error: Given comparison operator is not in the list.")
-                            invalid_operator = True
-                            break
-
-                        l_comparison_operators.append(comparison_operator)
                     else:
                         column_index = self.columns.index(target_feature)
                         column_type = self.column_types[column_index]
@@ -643,35 +542,6 @@ class Dataset:
     # def get_dataset_stats(dataset=None, use_internal_entries=False, samples=None, samples_dependent_values=None, feature_list=None, class_list=None):
     @staticmethod
     def get_dataset_stats(samples=None, samples_dependent_values=None, feature_list=None, class_list=None):
-        '''
-        if use_internal_entries == False and (type(samples) != np.matrix or type(samples_dependent_values) != np.matrix):
-            print(f"Error: Could not calculate dataset mean and variance, `use_internal_entries` was given as `False`, but `samples` and `samples_dependent_values` were not given (`np.matrix`).")
-            exit(-1)
-        elif use_internal_entries == True and (samples != None or samples_dependent_values != None):
-            print(f"Error: Could not calculate dataset mean and variance, `use_internal_entries` was given as `True`, but `samples` and `samples_dependent_values` were not `None`/ignored.")
-            exit(-1)
-        '''
-
-        '''
-        if type(dataset) == None:
-            features_mean = [0 for _ in range(len(feature_list))]
-            features_variance = [0 for _ in range(len(feature_list))]
-            features_std = [0 for _ in range(len(feature_list))]
-            dependent_variables_mean = [0 for _ in range(len(class_list))]
-            dependent_variables_variance = [0 for _ in range(len(class_list))]
-            dependent_variables_std = [0 for _ in range(len(class_list))]
-        elif type(dataset) == Dataset:
-            features_mean = [0 for _ in range(len(dataset.feature_list))]
-            features_variance = [0 for _ in range(len(dataset.feature_list))]
-            features_std = [0 for _ in range(len(dataset.feature_list))]
-            dependent_variables_mean = [0 for _ in range(len(dataset.class_list))]
-            dependent_variables_variance = [0 for _ in range(len(dataset.class_list))]
-            dependent_variables_std = [0 for _ in range(len(dataset.class_list))]
-        else:
-            print(f"Error: Could not get dataset stats, `dataset` argument was not of type `None` or `Dataset`. Its type is `{type(dataset)}`")
-            exit(-1)
-        '''
-
         if (type(samples) != np.matrix or type(samples_dependent_values) != np.matrix):
             print(f"Error: Could not calculate dataset mean, variance, and std, `samples` and `samples_dependent_values` were not given (as `np.matrix`).")
             exit(-1)
@@ -707,30 +577,6 @@ class Dataset:
 
             for class_idx, class_name in enumerate(class_list):
                 dependent_variables_variance[class_idx] += math.pow((samples_dependent_values[sample, class_idx] - dependent_variables_mean[class_idx]), 2) / (num_entries - 1)
-
-
-        '''
-        elif use_internal_entries:
-            num_entries = len(dataset.filtered_entries)
-
-            if num_entries <= 0:
-                print(f"Error: Could not calculate dataset mean and variance, number of entries must be a positive integer, but was {num_entries}.")
-                exit(-1)
-
-            for entry in dataset.filtered_entries:
-                for feature_idx, feature in enumerate(dataset.feature_list):
-                    features_mean[feature_idx] += entry.features[feature] / num_entries
-
-                for class_idx, class_name in enumerate(dataset.class_list):
-                    dependent_variables_mean[class_idx] += entry.dependent_values[class_name] / num_entries
-
-            for entry in dataset.filtered_entries:
-                for feature_idx, feature in enumerate(dataset.feature_list):
-                    features_variance[feature_idx] += math.pow((entry.features[feature] - features_mean[feature_idx]), 2) / num_entries
-
-                for class_idx, class_name in enumerate(dataset.class_list):
-                    dependent_variables_variance[class_idx] += math.pow((entry.dependent_values[class_name] - dependent_variables_mean[class_idx]), 2) / num_entries
-        '''
 
         for feature_idx in range(len(feature_list)):
             features_std[feature_idx] = math.sqrt(features_variance[feature_idx])
